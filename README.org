@@ -1,0 +1,10 @@
+* Lisper
+
+A tiny lisp interpreter in Haskell, WIP
+
+** Core features [0/2] [0%]
+    - [ ] Static typing
+    - [ ] Pattern Matching
+
+** Good to have [0/1] [0%]
+   - [ ] Type inference
