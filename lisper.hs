@@ -81,11 +81,38 @@ readExpr input = case parse parseExpr "lisp" input of
     Right x -> x
 
 -- Evaluator
+-- Primitives, implemented in terms of haskell
+primitives :: [(String, [LispVal] -> LispVal)]
+primitives = [("+", numericBinop (+)),
+              ("-", numericBinop (-)),
+              ("*", numericBinop (*)),
+              ("/", numericBinop div),
+              ("mod", numericBinop mod),
+              ("quot", numericBinop quot),
+              ("rem", numericBinop rem)]
+
+-- Helpers for the evaluator
+apply :: String -> [LispVal] -> LispVal
+apply func args = maybe (error err) ($ args) $ lookup func primitives where
+  err = "Undefined function " ++ show func
+
+-- `numericBinop` takes a primitive Haskell function and wraps it with code to
+-- unpack an argument list, apply the function to it, and wrap the result up in
+-- our Number constructor
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
+numericBinop op params = Number $ foldl1 op $ map unpackNum params where
+  unpackNum :: LispVal -> Integer
+  unpackNum (Number n) = n
+  unpackNum (String n) = error err where
+    err = "Who am I? JavaScript to type cast Strings to Numbers?"
+
+-- Evaluation rules
 eval :: LispVal -> LispVal
 eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
+eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
-
+-- Main
 main = getArgs >>= print . eval . readExpr .head

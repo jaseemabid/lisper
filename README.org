@@ -19,6 +19,7 @@ A tiny lisp interpreter in Haskell, WIP
 
 ** Exercises and small tasks [0/4] [0%]
 
+- [ ] Allow arbitrary spaces inside sexp => `( 4 5 )`
 - [ ] Support escaping strings
 - [ ] Support escape sequences
 - [ ] Add a Character constructor to LispVal
