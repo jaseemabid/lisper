@@ -10,11 +10,12 @@ data LispVal = Atom String
              | Bool Bool
 
 instance Show LispVal where
-    show (Atom x) = show " ATOM " ++ x
-    show (List x) = show " LIST " ++ show x
-    show (String x) = show " STRING " ++ x
-    show (Number x) = show " NUM " ++ show x
-    show (Bool x) = show " BOOL " ++ show x
+    show (Atom x) = x
+    show (List x) = show x
+    show (String string) = "\"" ++ string ++ "\""
+    show (Number n) = show n
+    show (Bool True) = "#t"
+    show (Bool False) = "#f"
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
