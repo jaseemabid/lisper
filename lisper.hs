@@ -75,9 +75,17 @@ parseExpr = parseAtom
                 char ')'
                 return x
 
-readExpr :: String -> String
+readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
-    Left err -> "No match: " ++ show err
-    Right x -> show x
+    Left err -> String $ "No match: " ++ show err
+    Right x -> x
 
-main = undefined
+-- Evaluator
+eval :: LispVal -> LispVal
+eval val@(String _) = val
+eval val@(Number _) = val
+eval val@(Bool _) = val
+eval (List [Atom "quote", val]) = val
+
+
+main = getArgs >>= print . eval . readExpr .head
