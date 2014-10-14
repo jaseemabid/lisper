@@ -9,9 +9,14 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
+-- Helpers
+unwords' :: [LispVal] -> String
+unwords' = unwords . map show
+
 instance Show LispVal where
     show (Atom x) = x
-    show (List x) = show x
+    show (List x) = "(" ++ unwords' x ++ ")"
+    show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String string) = "\"" ++ string ++ "\""
     show (Number n) = show n
     show (Bool True) = "#t"
