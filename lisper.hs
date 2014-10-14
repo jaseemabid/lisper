@@ -17,7 +17,7 @@ instance Show LispVal where
     show (Atom x) = x
     show (List x) = "(" ++ unwords' x ++ ")"
     show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
-    show (String string) = "\"" ++ string ++ "\""
+    show (String s) = "\"" ++ s ++ "\""
     show (Number n) = show n
     show (Bool True) = "#t"
     show (Bool False) = "#f"
@@ -30,9 +30,9 @@ spaces = skipMany1 space
 
 parseString :: Parser LispVal
 parseString = do
-  char '"'
+  _ <- char '"'
   x <- many (noneOf "\"")
-  char '"'
+  _ <- char '"'
   return $ String x
 
 parseNumber :: Parser LispVal
@@ -55,13 +55,13 @@ parseList = liftM List $ sepBy parseExpr spaces
 
 parseDottedList :: Parser LispVal
 parseDottedList = do
-    head <- endBy parseExpr spaces
-    tail <- char '.' >> spaces >> parseExpr
-    return $ DottedList head tail
+    h <- endBy parseExpr spaces
+    t <- char '.' >> spaces >> parseExpr
+    return $ DottedList h t
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
-    char '\''
+    _ <- char '\''
     x <- parseExpr
     return $ List [Atom "quote", x]
 
@@ -70,10 +70,11 @@ parseExpr = parseAtom
          <|> parseString
          <|> parseNumber
          <|> parseQuoted
-         <|> do char '('
-                x <- try parseList <|> parseDottedList
-                char ')'
-                return x
+         <|> do
+           _ <- char '('
+           x <- try parseList <|> parseDottedList
+           _ <- char ')'
+           return x
 
 readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
@@ -103,8 +104,12 @@ numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinop op params = Number $ foldl1 op $ map unpackNum params where
   unpackNum :: LispVal -> Integer
   unpackNum (Number n) = n
-  unpackNum (String n) = error err where
+  unpackNum (String _) = error err where
     err = "Who am I? JavaScript to type cast Strings to Numbers?"
+  unpackNum (Atom _) = error "Cannot type cast Atom to Number"
+  unpackNum (List _) = error "Cannot type cast List to Number"
+  unpackNum (Bool _) = error "Cannot type cast Boolean to Number"
+  unpackNum (DottedList _ _) = error "Cannot type cast DottedList to Number"
 
 -- Evaluation rules
 eval :: LispVal -> LispVal
@@ -115,4 +120,5 @@ eval (List [Atom "quote", val]) = val
 eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
 -- Main
+main :: IO ()
 main = getArgs >>= print . eval . readExpr .head
