@@ -1,23 +1,32 @@
 * Lisper
 
-A tiny lisp interpreter in Haskell, WIP
+A tiny lisp interpreter, to learn Haskell, WIP
 
-** Core features [0/2] [0%]
+*** Objective
 
-- [ ] Lexical scoped
-- [ ] Static typing
-- [ ] Pattern Matching
+Build a scheme like, but static and strongly typed, lazy pattern matched lisp.
+Yes, that sounds like a tiny haskell, and its no accident. Being a lisp, you
+will have obviously first class functions etc and being functional, it will be
+pure. No mutable variables.
 
-** Good to have [0/1] [0%]
+IO can be a compromise for now, I think.
 
-- [ ] Type inference with MH
+Expressions like `x = "5" + 6` doesn't make sense and it shouldn't. Strongly
+typed means no implicit type casting at runtime. All types will be known during
+compilation.
 
-** Experiments, syntactic sugar [0/2] [0%]
+*** Good to have
 
+1. Type inference with MH
+
+*** Feature pipeline [2/4]
+
+- [X] A working calculator with native haskell operators
+- [X] Scheme style Boolean
 - [ ] Haskell style cons with `:`
 - [ ] ML style list access with `#4`
 
-** Exercises and small tasks [0/4] [0%]
+*** Tasks, known bugs [0/5]
 
 - [ ] Allow arbitrary spaces inside sexp => `( 4 5 )`
 - [ ] Support escaping strings
