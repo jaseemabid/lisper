@@ -3,8 +3,23 @@
 A tiny lisp interpreter in Haskell, WIP
 
 ** Core features [0/2] [0%]
-    - [ ] Static typing
-    - [ ] Pattern Matching
+
+- [ ] Lexical scoped
+- [ ] Static typing
+- [ ] Pattern Matching
 
 ** Good to have [0/1] [0%]
-   - [ ] Type inference
+
+- [ ] Type inference with MH
+
+** Experiments, syntactic sugar [0/2] [0%]
+
+- [ ] Haskell style cons with `:`
+- [ ] ML style list access with `#4`
+
+** Exercises and small tasks [0/4] [0%]
+
+- [ ] Support escaping strings
+- [ ] Support escape sequences
+- [ ] Add a Character constructor to LispVal
+- [ ] Add a Float constructor

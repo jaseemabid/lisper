@@ -11,6 +11,7 @@ data LispVal = Atom String
 
 instance Show LispVal where
     show (Atom x) = show " ATOM " ++ x
+    show (List x) = show " LIST " ++ show x
     show (String x) = show " STRING " ++ x
     show (Number x) = show " NUM " ++ show x
     show (Bool x) = show " BOOL " ++ show x
@@ -43,10 +44,30 @@ parseAtom = do
             "#f" -> Bool False
             _    -> Atom atom
 
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+    head <- endBy parseExpr spaces
+    tail <- char '.' >> spaces >> parseExpr
+    return $ DottedList head tail
+
+parseQuoted :: Parser LispVal
+parseQuoted = do
+    char '\''
+    x <- parseExpr
+    return $ List [Atom "quote", x]
+
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
          <|> parseString
          <|> parseNumber
+         <|> parseQuoted
+         <|> do char '('
+                x <- try parseList <|> parseDottedList
+                char ')'
+                return x
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
