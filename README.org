@@ -15,6 +15,9 @@ Expressions like `x = "5" + 6` doesn't make sense and it shouldn't. Strongly
 typed means no implicit type casting at runtime. All types will be known during
 compilation.
 
+*** Resources
+    [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
+
 *** Good to have
 
 1. Type inference with MH
