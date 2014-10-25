@@ -26,6 +26,7 @@ compilation.
 
 - [X] A working calculator with native haskell operators
 - [X] Scheme style Boolean
+- [X] Pretty print quote with `
 - [ ] Haskell style cons with `:`
 - [ ] ML style list access with `#4`
 

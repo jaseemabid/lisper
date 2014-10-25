@@ -15,7 +15,10 @@ unwords' = unwords . map show
 
 instance Show LispVal where
     show (Atom x) = x
-    show (List x) = "(" ++ unwords' x ++ ")"
+    show (List x) =
+      case x of
+       (Atom "quote"):_ -> "'" ++ unwords' (tail x)
+       _ -> "(" ++ unwords' x ++ ")"
     show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String s) = "\"" ++ s ++ "\""
     show (Number n) = show n
@@ -84,7 +87,8 @@ readExpr input = case parse parseExpr "lisp" input of
 -- Evaluator
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
-primitives = [("+", numericBinop (+)),
+primitives = [("quote", quote),
+              ("+", numericBinop (+)),
               ("-", numericBinop (-)),
               ("*", numericBinop (*)),
               ("/", numericBinop div),
@@ -111,6 +115,10 @@ numericBinop op params = Number $ foldl1 op $ map unpackNum params where
   unpackNum (Bool _) = error "Cannot type cast Boolean to Number"
   unpackNum (DottedList _ _) = error "Cannot type cast DottedList to Number"
 
+-- Verify that quote takes only one argument
+quote lv = head lv
+
+
 -- Evaluation rules
 eval :: LispVal -> LispVal
 eval val@(String _) = val
@@ -119,6 +127,9 @@ eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
 eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
+-- Helper to test expressions in REPL
+evalString = eval . readExpr
+
 -- Main
 main :: IO ()
-main = getArgs >>= print . eval . readExpr .head
+main = getArgs >>= print . evalString . head
