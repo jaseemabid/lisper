@@ -54,7 +54,7 @@ parseAtom = do
             _    -> Atom atom
 
 parseList :: Parser LispVal
-parseList = liftM List $ sepBy parseExpr spaces
+parseList = liftM List $ sepEndBy parseExpr spaces
 
 parseDottedList :: Parser LispVal
 parseDottedList = do
@@ -75,7 +75,9 @@ parseExpr = parseAtom
          <|> parseQuoted
          <|> do
            _ <- char '('
+           _ <- many (spaces)
            x <- try parseList <|> parseDottedList
+           _ <- many (spaces)
            _ <- char ')'
            return x
 
