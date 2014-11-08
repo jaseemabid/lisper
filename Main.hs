@@ -10,6 +10,14 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
+-- Helpers to retrieve haskell values from LispVal
+
+-- [todo] Add input type to error message
+-- [todo] Possibly auto generate unpack*
+unpackNum :: LispVal -> Integer
+unpackNum (Number n) = n
+unpackNum _ = error "Cannot type cast Value to Number"
+
 -- Helpers
 unwords' :: [LispVal] -> String
 unwords' = unwords . map show
@@ -90,13 +98,19 @@ readExpr input = case parse parseExpr "lisp" input of
 -- Evaluator
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
-primitives = [("quote", head),
+primitives = [("*", numericBinop (*)),
               ("+", numericBinop (+)),
               ("-", numericBinop (-)),
-              ("*", numericBinop (*)),
               ("/", numericBinop div),
+              ("/=", numBoolBinop (/=)),
+              ("<", numBoolBinop (<)),
+              ("<=", numBoolBinop (<=)),
+              ("=", numBoolBinop (==)),
+              (">", numBoolBinop (>)),
+              (">=", numBoolBinop (>=)),
               ("mod", numericBinop mod),
               ("quot", numericBinop quot),
+              ("quote", head),
               ("rem", numericBinop rem)]
 
 -- Helpers for the evaluator
@@ -106,17 +120,13 @@ apply func args = maybe (error err) ($ args) $ lookup func primitives where
 
 -- `numericBinop` takes a primitive Haskell function and wraps it with code to
 -- unpack an argument list, apply the function to it, and wrap the result up in
--- our Number constructor
+-- LispVal Number constructor
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
-numericBinop op params = Number $ foldl1 op $ map unpackNum params where
-  unpackNum :: LispVal -> Integer
-  unpackNum (Number n) = n
-  unpackNum (String _) = error err where
-    err = "Who am I? JavaScript to type cast Strings to Numbers?"
-  unpackNum (Atom _) = error "Cannot type cast Atom to Number"
-  unpackNum (List _) = error "Cannot type cast List to Number"
-  unpackNum (Bool _) = error "Cannot type cast Boolean to Number"
-  unpackNum (DottedList _ _) = error "Cannot type cast DottedList to Number"
+numericBinop op params = Number $ foldl1 op $ map unpackNum params
+
+numBoolBinop :: (Integer -> Integer -> Bool) -> [LispVal] -> LispVal
+numBoolBinop op [Number one, Number two] = Bool (one `op` two)
+numBoolBinop _ _  = error "Unexpected arguments to numeric binary operator"
 
 -- Evaluation rules
 eval :: LispVal -> LispVal
