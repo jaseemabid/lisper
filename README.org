@@ -13,8 +13,8 @@ pure. No mutable variables.
 IO can be a compromise for now, I think.
 
 *** Resources
-    [[http://dev.stephendiehl.com/hask/][What I Wish I Knew When Learning Haskell 2.1]]
-    [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
+- [[http://dev.stephendiehl.com/hask/][What I Wish I Knew When Learning Haskell 2.1]]
+- [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
 
 *** Good to have
 
