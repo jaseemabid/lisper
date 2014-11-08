@@ -5,24 +5,22 @@ A tiny lisp interpreter, to learn Haskell, WIP
 *** Objective
 
 Build a scheme like, but static and strongly typed, lazy pattern matched lisp.
+
 Yes, that sounds like a tiny haskell, and its no accident. Being a lisp, you
 will have obviously first class functions etc and being functional, it will be
 pure. No mutable variables.
 
 IO can be a compromise for now, I think.
 
-Expressions like `x = "5" + 6` doesn't make sense and it shouldn't. Strongly
-typed means no implicit type casting at runtime. All types will be known during
-compilation.
-
 *** Resources
+    [[http://dev.stephendiehl.com/hask/][What I Wish I Knew When Learning Haskell 2.1]]
     [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
 
 *** Good to have
 
 1. Type inference with MH
 
-*** Feature pipeline [2/4]
+*** Feature pipeline [3/5]
 
 - [X] A working calculator with native haskell operators
 - [X] Scheme style Boolean
@@ -30,9 +28,10 @@ compilation.
 - [ ] Haskell style cons with `:`
 - [ ] ML style list access with `#4`
 
-*** Tasks, known bugs [0/5]
+*** Tasks, known bugs [1/6]
 
 - [X] Allow arbitrary spaces inside sexp => `( 4 5 )`
+- [ ] Allow arbitrary spaces outside sexp => `   (+ 4 5)  `
 - [ ] Support escaping strings
 - [ ] Support escape sequences
 - [ ] Add a Character constructor to LispVal
