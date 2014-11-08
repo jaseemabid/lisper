@@ -18,7 +18,7 @@ instance Show LispVal where
     show (Atom x) = x
     show (List x) =
       case x of
-       (Atom "quote"):_ -> "'" ++ unwords' (tail x)
+       Atom "quote" : _ -> "'" ++ unwords' (tail x)
        _ -> "(" ++ unwords' x ++ ")"
     show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String s) = "\"" ++ s ++ "\""
@@ -76,9 +76,9 @@ parseExpr = parseAtom
          <|> parseQuoted
          <|> do
            _ <- char '('
-           _ <- many (spaces)
+           _ <- many spaces
            x <- try parseList <|> parseDottedList
-           _ <- many (spaces)
+           _ <- many spaces
            _ <- char ')'
            return x
 
@@ -90,7 +90,7 @@ readExpr input = case parse parseExpr "lisp" input of
 -- Evaluator
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
-primitives = [("quote", quote),
+primitives = [("quote", head),
               ("+", numericBinop (+)),
               ("-", numericBinop (-)),
               ("*", numericBinop (*)),
@@ -118,9 +118,6 @@ numericBinop op params = Number $ foldl1 op $ map unpackNum params where
   unpackNum (Bool _) = error "Cannot type cast Boolean to Number"
   unpackNum (DottedList _ _) = error "Cannot type cast DottedList to Number"
 
--- Verify that quote takes only one argument
-quote lv = head lv
-
 -- Evaluation rules
 eval :: LispVal -> LispVal
 eval val@(String _) = val
@@ -139,14 +136,12 @@ readPrompt prompt = flushStr prompt >> getLine
 evalString = eval . readExpr
 
 evalAndPrint :: String -> IO ()
-evalAndPrint expr =  (return $ show $ evalString expr) >>= putStrLn
+evalAndPrint expr = print (evalString expr)
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
    input <- prompt
-   if pred input
-     then return ()
-     else action input >> until_ pred prompt action
+   unless (pred input) $ action input >> until_ pred prompt action
 
 runRepl :: IO ()
 runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
@@ -156,5 +151,5 @@ main :: IO ()
 main = do args <- getArgs
           case length args of
               0 -> runRepl
-              1 -> evalAndPrint $ args !! 0
+              1 -> evalAndPrint $ head args
               otherwise -> putStrLn "Program takes only 0 or 1 argument"
