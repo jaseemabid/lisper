@@ -1,5 +1,6 @@
 import Control.Monad
 import System.Environment
+import System.IO
 import Text.ParserCombinators.Parsec hiding (spaces)
 
 data LispVal = Atom String
@@ -120,7 +121,6 @@ numericBinop op params = Number $ foldl1 op $ map unpackNum params where
 -- Verify that quote takes only one argument
 quote lv = head lv
 
-
 -- Evaluation rules
 eval :: LispVal -> LispVal
 eval val@(String _) = val
@@ -129,9 +129,32 @@ eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
 eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
--- Helper to test expressions in REPL
+-- REPL helpers
+flushStr :: String -> IO ()
+flushStr str = putStr str >> hFlush stdout
+
+readPrompt :: String -> IO String
+readPrompt prompt = flushStr prompt >> getLine
+
 evalString = eval . readExpr
+
+evalAndPrint :: String -> IO ()
+evalAndPrint expr =  (return $ show $ evalString expr) >>= putStrLn
+
+until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
+until_ pred prompt action = do
+   input <- prompt
+   if pred input
+     then return ()
+     else action input >> until_ pred prompt action
+
+runRepl :: IO ()
+runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
 
 -- Main
 main :: IO ()
-main = getArgs >>= print . evalString . head
+main = do args <- getArgs
+          case length args of
+              0 -> runRepl
+              1 -> evalAndPrint $ args !! 0
+              otherwise -> putStrLn "Program takes only 0 or 1 argument"
