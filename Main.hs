@@ -134,6 +134,13 @@ eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
+
+eval (List [Atom "if", pred, conseq, alt]) =
+     let result = eval pred
+     in case result of
+         Bool False -> eval alt
+         otherwise  -> eval conseq
+
 eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
 -- REPL helpers
