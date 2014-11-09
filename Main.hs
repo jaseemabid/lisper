@@ -150,10 +150,8 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalString = eval . readExpr
-
 evalAndPrint :: String -> IO ()
-evalAndPrint expr = print (evalString expr)
+evalAndPrint = print . eval . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
