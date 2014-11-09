@@ -23,16 +23,16 @@ unwords' :: [LispVal] -> String
 unwords' = unwords . map show
 
 instance Show LispVal where
-    show (Atom x) = x
-    show (List x) =
-      case x of
-       Atom "quote" : _ -> "'" ++ unwords' (tail x)
-       _ -> "(" ++ unwords' x ++ ")"
-    show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
-    show (String s) = "\"" ++ s ++ "\""
-    show (Number n) = show n
-    show (Bool True) = "#t"
-    show (Bool False) = "#f"
+  show (Atom x) = x
+  show (List x) =
+    case x of
+     Atom "quote" : _ -> "'" ++ unwords' (tail x)
+     _ -> "(" ++ unwords' x ++ ")"
+  show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
+  show (String s) = "\"" ++ s ++ "\""
+  show (Number n) = show n
+  show (Bool True) = "#t"
+  show (Bool False) = "#f"
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -67,15 +67,15 @@ parseList = liftM List $ sepEndBy parseExpr spaces
 
 parseDottedList :: Parser LispVal
 parseDottedList = do
-    h <- endBy parseExpr spaces
-    t <- char '.' >> spaces >> parseExpr
-    return $ DottedList h t
+  h <- endBy parseExpr spaces
+  t <- char '.' >> spaces >> parseExpr
+  return $ DottedList h t
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
-    _ <- char '\''
-    x <- parseExpr
-    return $ List [Atom "quote", x]
+  _ <- char '\''
+  x <- parseExpr
+  return $ List [Atom "quote", x]
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
@@ -92,8 +92,8 @@ parseExpr = parseAtom
 
 readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "lisp" input of
-    Left err -> String $ "No match: " ++ show err
-    Right x -> x
+  Left err -> String $ "No match: " ++ show err
+  Right x -> x
 
 -- Evaluator
 -- Primitives, implemented in terms of haskell
@@ -136,10 +136,10 @@ eval val@(Bool _) = val
 eval (List [Atom "quote", val]) = val
 
 eval (List [Atom "if", pred, conseq, alt]) =
-     let result = eval pred
-     in case result of
-         Bool False -> eval alt
-         otherwise  -> eval conseq
+  let result = eval pred
+  in case result of
+      Bool False -> eval alt
+      otherwise  -> eval conseq
 
 eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
 
@@ -155,8 +155,8 @@ evalAndPrint = print . eval . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
-   input <- prompt
-   unless (pred input) $ action input >> until_ pred prompt action
+  input <- prompt
+  unless (pred input) $ action input >> until_ pred prompt action
 
 runRepl :: IO ()
 runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
@@ -165,6 +165,6 @@ runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
 main :: IO ()
 main = do args <- getArgs
           case length args of
-              0 -> runRepl
-              1 -> evalAndPrint $ head args
-              otherwise -> putStrLn "Program takes only 0 or 1 argument"
+           0 -> runRepl
+           1 -> evalAndPrint $ head args
+           otherwise -> putStrLn "Program takes only 0 or 1 argument"
