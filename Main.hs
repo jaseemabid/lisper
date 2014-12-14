@@ -130,6 +130,7 @@ numBoolBinop _ _  = error "Unexpected arguments to numeric binary operator"
 
 -- Evaluation rules
 eval :: LispVal -> LispVal
+eval (List []) = List []
 eval val@(String _) = val
 eval val@(Number _) = val
 eval val@(Bool _) = val
