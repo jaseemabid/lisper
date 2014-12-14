@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 import Control.Monad
 import System.Environment
 import System.IO
@@ -9,6 +10,19 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
+
+type Env = [(String, LispVal)]
+
+getVar :: String -> Env -> LispVal
+getVar id env = case lookup id env of
+                  Just v -> v
+                  otherwise -> error $ "Undefined variable " ++ id
+
+-- Default environment to start with
+env :: Env
+env = [("ZERO", Number 0),
+       ("LIFE", Number 42),
+       ("VERSION", String "lisper 0.1")]
 
 -- Helpers to retrieve haskell values from LispVal
 
@@ -129,20 +143,26 @@ numBoolBinop op [Number one, Number two] = Bool (one `op` two)
 numBoolBinop _ _  = error "Unexpected arguments to numeric binary operator"
 
 -- Evaluation rules
-eval :: LispVal -> LispVal
-eval (List []) = List []
-eval val@(String _) = val
-eval val@(Number _) = val
-eval val@(Bool _) = val
-eval (List [Atom "quote", val]) = val
+eval :: Env -> LispVal -> LispVal
 
-eval (List [Atom "if", pred, conseq, alt]) =
-  let result = eval pred
+eval env val@(String _) = val
+eval env val@(Number _) = val
+eval env val@(Bool _) = val
+
+eval env (Atom id) = getVar id env
+
+eval env (List [Atom "quote", val]) = val
+
+eval env (List [Atom "if", pred, conseq, alt]) =
+  let result = eval env pred
   in case result of
-      Bool False -> eval alt
-      otherwise  -> eval conseq
+      Bool True -> eval env conseq
+      Bool False -> eval env alt
+      otherwise  -> error "If needs a Boolean predicate"
 
-eval (List (Atom func : args)) = apply func $ map eval args -- Is this lazy??
+eval env (List []) = List []
+
+eval env (List (Atom func : args)) = apply func $ map (eval env) args -- Is this lazy??
 
 -- REPL helpers
 flushStr :: String -> IO ()
@@ -152,7 +172,7 @@ readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
 evalAndPrint :: String -> IO ()
-evalAndPrint = print . eval . readExpr
+evalAndPrint = print . eval env . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
