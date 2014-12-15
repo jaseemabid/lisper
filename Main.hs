@@ -157,14 +157,17 @@ eval _ (List [Atom "quote", val]) = val
 
 eval env (Atom key) = getVar key env
 
-eval env (List [Atom "let", args, body]) =
-    let makeEnv item =
-            case item of
-              List[Atom a, val] -> (a, val) : env
-    in case args of
-         List[v] -> eval (makeEnv v) body
-         List[v, rest] -> eval (makeEnv v) (List [Atom "let", List[rest], body])
-         _ -> error "Second argument to let should be an alist"
+eval env (List [Atom "let", args, body]) = eval' env args
+    where
+      makeEnv item env'' =
+          case item of
+            List[Atom a, val] -> (a, val) : env''
+
+      eval' env'' args' =
+          case args' of
+            List[v] -> eval (makeEnv v env'') body
+            List[v, rest] -> eval' (makeEnv v env'') (List[rest])
+            _ -> error "Second argument to let should be an alist"
 
 eval env (List [Atom "if", predicate, conseq, alt]) =
   let result = eval env predicate
