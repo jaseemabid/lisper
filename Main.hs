@@ -17,7 +17,7 @@ type Env = [(String, LispVal)]
 
 getVar :: String -> Env -> LispVal
 getVar key env = case lookup key env of
-                  Just v -> v
+                  Just v -> eval env v
                   _ -> error $ "Undefined variable " ++ key
 
 -- Default environment to start with
