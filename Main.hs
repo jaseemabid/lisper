@@ -189,9 +189,9 @@ evalAndPrint :: String -> IO ()
 evalAndPrint = print . eval env' . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
-until_ pred prompt action = do
+until_ predicate prompt action = do
   input <- prompt
-  unless (pred input) $ action input >> until_ pred prompt action
+  unless (predicate input) $ action input >> until_ predicate prompt action
 
 runRepl :: IO ()
 runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
