@@ -32,7 +32,7 @@ env' = [("ZERO", Number 0),
 -- [todo] Possibly auto generate unpack*
 unpackNum :: LispVal -> Integer
 unpackNum (Number n) = n
-unpackNum _ = error "Cannot type cast Value to Number"
+unpackNum x = unpackNum $ eval env' x
 
 -- Helpers
 unwords' :: [LispVal] -> String
