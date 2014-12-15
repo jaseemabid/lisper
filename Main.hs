@@ -11,6 +11,7 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
+nil :: LispVal
 nil = List []
 
 type Env = [(String, LispVal)]
@@ -151,18 +152,26 @@ eval _ val@(String _) = val
 eval _ val@(Number _) = val
 eval _ val@(Bool _) = val
 
-eval env (Atom id) = getVar id env
+eval _ (List []) = List []
+eval _ (List [Atom "quote", val]) = val
 
-eval env (List [Atom "quote", val]) = val
+eval env (Atom key) = getVar key env
 
-eval env (List [Atom "if", pred, conseq, alt]) =
-  let result = eval env pred
+eval env (List [Atom "let", args, body]) =
+    let makeEnv item =
+            case item of
+              List[Atom a, val] -> (a, val) : env
+    in case args of
+         List[v] -> eval (makeEnv v) body
+         List[v, rest] -> eval (makeEnv v) (List [Atom "let", List[rest], body])
+         _ -> error "Second argument to let should be an alist"
+
+eval env (List [Atom "if", predicate, conseq, alt]) =
+  let result = eval env predicate
   in case result of
       Bool True -> eval env conseq
       Bool False -> eval env alt
       _  -> error "If needs a Boolean predicate"
-
-eval env (List []) = List []
 
 eval env (List (Atom func : args)) = apply func $ map (eval env) args -- Is this lazy??
 
