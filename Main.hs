@@ -11,6 +11,8 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
+nil = List []
+
 type Env = [(String, LispVal)]
 
 getVar :: String -> Env -> LispVal
