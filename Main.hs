@@ -14,13 +14,13 @@ data LispVal = Atom String
 type Env = [(String, LispVal)]
 
 getVar :: String -> Env -> LispVal
-getVar id env = case lookup id env of
+getVar key env = case lookup key env of
                   Just v -> v
-                  otherwise -> error $ "Undefined variable " ++ id
+                  _ -> error $ "Undefined variable " ++ key
 
 -- Default environment to start with
-env :: Env
-env = [("ZERO", Number 0),
+env' :: Env
+env' = [("ZERO", Number 0),
        ("LIFE", Number 42),
        ("VERSION", String "lisper 0.1")]
 
@@ -145,9 +145,9 @@ numBoolBinop _ _  = error "Unexpected arguments to numeric binary operator"
 -- Evaluation rules
 eval :: Env -> LispVal -> LispVal
 
-eval env val@(String _) = val
-eval env val@(Number _) = val
-eval env val@(Bool _) = val
+eval _ val@(String _) = val
+eval _ val@(Number _) = val
+eval _ val@(Bool _) = val
 
 eval env (Atom id) = getVar id env
 
@@ -158,7 +158,7 @@ eval env (List [Atom "if", pred, conseq, alt]) =
   in case result of
       Bool True -> eval env conseq
       Bool False -> eval env alt
-      otherwise  -> error "If needs a Boolean predicate"
+      _  -> error "If needs a Boolean predicate"
 
 eval env (List []) = List []
 
@@ -172,7 +172,7 @@ readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
 evalAndPrint :: String -> IO ()
-evalAndPrint = print . eval env . readExpr
+evalAndPrint = print . eval env' . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
@@ -188,4 +188,4 @@ main = do args <- getArgs
           case length args of
            0 -> runRepl
            1 -> evalAndPrint $ head args
-           otherwise -> putStrLn "Program takes only 0 or 1 argument"
+           _ -> putStrLn "Program takes only 0 or 1 argument"
