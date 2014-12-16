@@ -4,6 +4,10 @@ import System.Environment
 import System.IO
 import Text.ParserCombinators.Parsec hiding (spaces)
 
+import Debug.Trace (trace)
+
+debug = flip trace
+
 data LispVal = Atom String
              | List [LispVal]
              | DottedList [LispVal] LispVal
