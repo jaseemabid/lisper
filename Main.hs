@@ -170,7 +170,7 @@ eval env (List [Atom "let", args, body]) = eval' env args
       eval' env'' args' =
           case args' of
             List[v] -> eval (makeEnv v env'') body
-            List[v, rest] -> eval' (makeEnv v env'') (List[rest])
+            List(v:rest) -> eval' (makeEnv v env'') (List(rest))
             _ -> error "Second argument to let should be an alist"
 
 eval env (List [Atom "if", predicate, conseq, alt]) =
