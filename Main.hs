@@ -181,6 +181,7 @@ eval env (Let args body) = eval' env args
 eval env (If predicate conseq alt) =
   let result = eval env predicate
   in case result of
+      NIL -> eval env alt
       Bool True -> eval env conseq
       Bool False -> eval env alt
       _  -> error "If needs a Boolean predicate"
