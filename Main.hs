@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 import Control.Monad
 import System.Environment
 import System.IO
@@ -15,8 +16,10 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
-nil :: LispVal
-nil = List []
+pattern If = Atom "if"
+pattern Let = Atom "let"
+pattern NIL = List []
+pattern Quote = Atom "quote"
 
 type Env = [(String, LispVal)]
 
@@ -47,7 +50,7 @@ instance Show LispVal where
   show (Atom x) = x
   show (List x) =
     case x of
-     Atom "quote" : _ -> "'" ++ unwords' (tail x)
+     Quote : _ -> "'" ++ unwords' (tail x)
      _ -> "(" ++ unwords' x ++ ")"
   show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
   show (String s) = "\"" ++ s ++ "\""
@@ -96,7 +99,7 @@ parseQuoted :: Parser LispVal
 parseQuoted = do
   _ <- char '\''
   x <- parseExpr
-  return $ List [Atom "quote", x]
+  return $ List [Quote, x]
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
@@ -156,12 +159,12 @@ eval _ val@(String _) = val
 eval _ val@(Number _) = val
 eval _ val@(Bool _) = val
 
-eval _ (List []) = List []
-eval _ (List [Atom "quote", val]) = val
+eval _ NIL = NIL
+eval _ (List [Quote, val]) = val
 
 eval env (Atom key) = getVar key env
 
-eval env (List [Atom "let", args, body]) = eval' env args
+eval env (List [Let, args, body]) = eval' env args
     where
       makeEnv item env'' =
           case item of
@@ -173,7 +176,7 @@ eval env (List [Atom "let", args, body]) = eval' env args
             List(v:rest) -> eval' (makeEnv v env'') (List(rest))
             _ -> error "Second argument to let should be an alist"
 
-eval env (List [Atom "if", predicate, conseq, alt]) =
+eval env (List [If, predicate, conseq, alt]) =
   let result = eval env predicate
   in case result of
       Bool True -> eval env conseq
