@@ -37,7 +37,7 @@ env' = [("ZERO", Number 0),
 -- [todo] Possibly auto generate unpack*
 unpackNum :: LispVal -> Integer
 unpackNum (Number n) = n
-unpackNum x = unpackNum $ eval env' x
+unpackNum _ =  error "Unable to convert to number"
 
 -- Helpers
 unwords' :: [LispVal] -> String
