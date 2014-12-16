@@ -16,9 +16,11 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
-pattern If = Atom "if"
-pattern Let = Atom "let"
 pattern NIL = List []
+
+pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
+pattern Let args body = List [Atom "let", args, body]
+
 pattern Quote = Atom "quote"
 
 type Env = [(String, LispVal)]
@@ -164,7 +166,7 @@ eval _ (List [Quote, val]) = val
 
 eval env (Atom key) = getVar key env
 
-eval env (List [Let, args, body]) = eval' env args
+eval env (Let args body) = eval' env args
     where
       makeEnv item env'' =
           case item of
@@ -176,7 +178,7 @@ eval env (List [Let, args, body]) = eval' env args
             List(v:rest) -> eval' (makeEnv v env'') (List(rest))
             _ -> error "Second argument to let should be an alist"
 
-eval env (List [If, predicate, conseq, alt]) =
+eval env (If predicate conseq alt) =
   let result = eval env predicate
   in case result of
       Bool True -> eval env conseq
