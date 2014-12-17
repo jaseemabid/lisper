@@ -1,13 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+
 import Control.Monad
 import System.Environment
 import System.IO
 import Text.ParserCombinators.Parsec
-
 import Debug.Trace (trace)
-
-debug = flip trace
 
 data LispVal = Atom String
              | List [LispVal]
@@ -16,22 +14,20 @@ data LispVal = Atom String
              | String String
              | Bool Bool
 
-pattern NIL = List []
-
-pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
-pattern Let args body = List [Atom "let", args, body]
-
-pattern Quote = Atom "quote"
-
 type Env = [(String, LispVal)]
 
--- Default environment to start with
-env' :: Env
-env' = [("ZERO", Number 0),
-       ("LIFE", Number 42),
-       ("VERSION", String "lisper 0.1")]
+-- Patterns for pattern matching ;)
+pattern NIL = List []
 
--- Helpers to retrieve haskell values from LispVal
+-- Special forms
+pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
+pattern Let args body = List [Atom "let", args, body]
+pattern Quote = Atom "quote"
+pattern Set var val = List [Atom "set!", (Atom var), val]
+
+-- Debug helpers
+debug :: c -> String -> c
+debug = flip trace
 
 -- [todo] Add input type to error message
 -- [todo] Possibly auto generate unpack*
@@ -55,6 +51,7 @@ instance Show LispVal where
   show (Bool True) = "#t"
   show (Bool False) = "#f"
 
+-- Parser
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
@@ -177,18 +174,20 @@ eval env (Atom key) = case lookup key env of
                         Just v -> eval env v
                         Nothing -> error $ "Undefined variable " ++ key
 
+-- Let special form
 eval env (Let args body) = eval' env args
     where
-      makeEnv item env'' =
+      makeEnv item env' =
           case item of
-            List[Atom a, val] -> (a, val) : env''
+            List[Atom a, val] -> (a, val) : env'
 
-      eval' env'' args' =
+      eval' env' args' =
           case args' of
-            List[v] -> eval (makeEnv v env'') body
-            List(v:rest) -> eval' (makeEnv v env'') (List(rest))
+            List[v] -> eval (makeEnv v env') body
+            List(v:rest) -> eval' (makeEnv v env') (List(rest))
             _ -> error "Second argument to let should be an alist"
 
+-- If special form
 eval env (If predicate conseq alt) =
     let f NIL = eval env alt
         f (Bool True) = eval env conseq
@@ -196,15 +195,19 @@ eval env (If predicate conseq alt) =
         f _ = error "If needs a Boolean predicate"
     in f $ snd $ eval env predicate
 
-eval env (List (Atom func : args)) = (env, apply func $ map (snd . eval env) args)
+-- Set special form
+eval env (Set var val) = ((var, val) : env, val)
+
+-- Function application
+eval env (List (Atom func : args)) =
+    (env, apply func $ map (snd . eval env) args)
 
 -- Progn, evaluate a list of statements sequentially and return the result of
 -- the last, along with the final env
 progn :: Env -> [LispVal] -> (Env, LispVal)
 progn env [x] = eval env x
-progn env (x:xs) =
-    case eval env x of
-      (env', l) -> progn env' xs
+progn env (x:xs) = case eval env x of
+                     (env', _) -> progn env' xs
 
 -- REPL helpers
 flushStr :: String -> IO ()
@@ -214,7 +217,7 @@ readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
 evalAndPrint :: String -> IO ()
-evalAndPrint = print . snd . eval env' . readExpr
+evalAndPrint = print . snd . eval [] . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ predicate prompt action = do
