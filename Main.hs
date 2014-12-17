@@ -3,7 +3,7 @@
 import Control.Monad
 import System.Environment
 import System.IO
-import Text.ParserCombinators.Parsec hiding (spaces)
+import Text.ParserCombinators.Parsec
 
 import Debug.Trace (trace)
 
@@ -58,9 +58,6 @@ instance Show LispVal where
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-spaces :: Parser()
-spaces = skipMany1 space
-
 parseString :: Parser LispVal
 parseString = do
   _ <- char '"'
@@ -104,17 +101,27 @@ parseExpr = parseAtom
          <|> parseNumber
          <|> parseQuoted
          <|> do
+           _ <- spaces
            _ <- char '('
-           _ <- many spaces
+           _ <- spaces
            x <- try parseList <|> parseDottedList
-           _ <- many spaces
+           _ <- spaces
            _ <- char ')'
+           _ <- spaces
            return x
 
+parseProg :: Parser [LispVal]
+parseProg = many1 parseExpr
+
 readExpr :: String -> LispVal
-readExpr input = case parse parseExpr "lisp" input of
-  Left err -> String $ "No match: " ++ show err
-  Right x -> x
+readExpr input = case parse parseExpr "expr" input of
+                   Right x -> x
+                   Left err -> error $ "Cannot parse expr : " ++ show err
+
+readProg :: String -> [LispVal]
+readProg input = case parse parseProg "prog" input of
+                   Right x -> x
+                   Left err -> error $ "Cannot parse expr : " ++ show err
 
 -- Evaluator
 -- Primitives, implemented in terms of haskell
