@@ -198,6 +198,14 @@ eval env (If predicate conseq alt) =
 
 eval env (List (Atom func : args)) = (env, apply func $ map (snd . eval env) args)
 
+-- Progn, evaluate a list of statements sequentially and return the result of
+-- the last, along with the final env
+progn :: Env -> [LispVal] -> (Env, LispVal)
+progn env [x] = eval env x
+progn env (x:xs) =
+    case eval env x of
+      (env', l) -> progn env' xs
+
 -- REPL helpers
 flushStr :: String -> IO ()
 flushStr str = putStr str >> hFlush stdout
