@@ -187,7 +187,7 @@ eval env (If predicate conseq alt) =
         f (Bool True) = eval env conseq
         f (Bool False) = eval env alt
         f _ = error "If needs a Boolean predicate"
-    in eval env predicate
+    in f $ snd $ eval env predicate
 
 eval env (List (Atom func : args)) = (env, apply func $ map (snd . eval env) args)
 
