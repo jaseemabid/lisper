@@ -25,11 +25,6 @@ pattern Quote = Atom "quote"
 
 type Env = [(String, LispVal)]
 
-getVar :: String -> Env -> LispVal
-getVar key env = case lookup key env of
-                  Just v -> eval env v
-                  _ -> error $ "Undefined variable " ++ key
-
 -- Default environment to start with
 env' :: Env
 env' = [("ZERO", Number 0),
@@ -155,16 +150,25 @@ numBoolBinop op [Number one, Number two] = Bool (one `op` two)
 numBoolBinop _ _  = error "Unexpected arguments to numeric binary operator"
 
 -- Evaluation rules
-eval :: Env -> LispVal -> LispVal
 
-eval _ val@(String _) = val
-eval _ val@(Number _) = val
-eval _ val@(Bool _) = val
+-- Evaluate an expression and return the new environment and the result of the
+-- evaluation. Env should mostly be unmodified unless the body is of the form of
+-- a `defun` or a `set`. A `set` or `defun` should return an environment with a
+-- new key, while a let expression should return the same env unmodified.
 
-eval _ NIL = NIL
-eval _ (List [Quote, val]) = val
+eval :: Env -> LispVal -> (Env, LispVal)
 
-eval env (Atom key) = getVar key env
+eval env NIL = (env, NIL)
+eval env val@(String _) = (env, val)
+eval env val@(Number _) = (env, val)
+eval env val@(Bool _) = (env, val)
+
+eval env (List [Quote, val]) = (env, val)
+
+-- Variable lookup, forcing an evaluation
+eval env (Atom key) = case lookup key env of
+                        Just v -> eval env v
+                        Nothing -> error $ "Undefined variable " ++ key
 
 eval env (Let args body) = eval' env args
     where
@@ -179,14 +183,13 @@ eval env (Let args body) = eval' env args
             _ -> error "Second argument to let should be an alist"
 
 eval env (If predicate conseq alt) =
-  let result = eval env predicate
-  in case result of
-      NIL -> eval env alt
-      Bool True -> eval env conseq
-      Bool False -> eval env alt
-      _  -> error "If needs a Boolean predicate"
+    let f NIL = eval env alt
+        f (Bool True) = eval env conseq
+        f (Bool False) = eval env alt
+        f _ = error "If needs a Boolean predicate"
+    in eval env predicate
 
-eval env (List (Atom func : args)) = apply func $ map (eval env) args -- Is this lazy??
+eval env (List (Atom func : args)) = (env, apply func $ map (snd . eval env) args)
 
 -- REPL helpers
 flushStr :: String -> IO ()
@@ -196,7 +199,7 @@ readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
 evalAndPrint :: String -> IO ()
-evalAndPrint = print . eval env' . readExpr
+evalAndPrint = print . snd . eval env' . readExpr
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ predicate prompt action = do
