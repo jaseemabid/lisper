@@ -2,10 +2,10 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 import Control.Monad
+import Debug.Trace (trace)
 import System.Environment
 import System.IO
 import Text.ParserCombinators.Parsec
-import Debug.Trace (trace)
 
 data LispVal = Atom String
              | List [LispVal]
@@ -107,16 +107,11 @@ parseExpr = parseAtom
            _ <- spaces
            return x
 
-parseProg :: Parser [LispVal]
-parseProg = many1 parseExpr
+parser :: Parser [LispVal]
+parser = many1 parseExpr
 
-readExpr :: String -> LispVal
-readExpr input = case parse parseExpr "expr" input of
-                   Right x -> x
-                   Left err -> error $ "Cannot parse expr : " ++ show err
-
-readProg :: String -> [LispVal]
-readProg input = case parse parseProg "prog" input of
+readExpr :: String -> [LispVal]
+readExpr input = case parse parser "exp" input of
                    Right x -> x
                    Left err -> error $ "Cannot parse expr : " ++ show err
 
@@ -202,12 +197,15 @@ eval env (Set var val) = ((var, val) : env, val)
 eval env (List (Atom func : args)) =
     (env, apply func $ map (snd . eval env) args)
 
--- Progn, evaluate a list of statements sequentially and return the result of
--- the last, along with the final env
+-- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
 progn env [x] = eval env x
 progn env (x:xs) = case eval env x of
                      (env', _) -> progn env' xs
+
+-- Top level evaluator.
+exec :: String -> IO ()
+exec = print . snd . progn [] . readExpr
 
 -- REPL helpers
 flushStr :: String -> IO ()
@@ -216,21 +214,18 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalAndPrint :: String -> IO ()
-evalAndPrint = print . snd . eval [] . readExpr
-
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ predicate prompt action = do
   input <- prompt
   unless (predicate input) $ action input >> until_ predicate prompt action
 
 runRepl :: IO ()
-runRepl = until_ (== "q") (readPrompt "λ> ") evalAndPrint
+runRepl = until_ (== "q") (readPrompt "λ> ") exec
 
 -- Main
 main :: IO ()
 main = do args <- getArgs
           case length args of
            0 -> runRepl
-           1 -> evalAndPrint $ head args
+           1 -> exec $ head args
            _ -> putStrLn "Program takes only 0 or 1 argument"
