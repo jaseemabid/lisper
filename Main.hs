@@ -4,6 +4,7 @@
 import Control.Monad
 import Debug.Trace (trace)
 import System.Environment
+import System.Exit
 import System.IO
 import Text.ParserCombinators.Parsec
 
@@ -224,8 +225,17 @@ runRepl = until_ (== "q") (readPrompt "λ> ") exec
 
 -- Main
 main :: IO ()
-main = do args <- getArgs
-          case length args of
-           0 -> runRepl
-           1 -> exec $ head args
-           _ -> putStrLn "Program takes only 0 or 1 argument"
+main = getArgs >>= parseArgs >>= putStr
+
+parseArgs ["-c", sexp] = exec sexp >> exit
+parseArgs ["-h"] = usage   >> exit
+parseArgs ["-v"] = version >> exit
+parseArgs [] = runRepl >> exit
+parseArgs [file] = readFile file >>= exec >> exit
+parseArgs _ = usage >> exit
+
+die     = exitWith (ExitFailure 1)
+exit    = exitWith ExitSuccess
+
+usage   = putStrLn "Usage: lisper [-vh] [file ..]"
+version = putStrLn "The Glorious lisper, version 0.1.0.0"
