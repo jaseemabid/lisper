@@ -179,7 +179,7 @@ eval env (Let args body) = eval' env args
 
       eval' env' args' =
           case args' of
-            List[v] -> eval (makeEnv v env') body
+            List[v] -> (env, snd $ eval (makeEnv v env') body)
             List(v:rest) -> eval' (makeEnv v env') (List(rest))
             _ -> error "Second argument to let should be an alist"
 
