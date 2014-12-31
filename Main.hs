@@ -252,4 +252,4 @@ die     = exitWith (ExitFailure 1)
 exit    = exitWith ExitSuccess
 
 usage   = putStrLn "Usage: lisper [-vh] [file ..]"
-version = putStrLn "The Glorious lisper, version 0.1.0.0"
+version = putStrLn "The Glorious lisp, version 0.1.0.0"
