@@ -209,7 +209,7 @@ eval env (List (Atom func : args)) =
           let
               args' = List $ zipWith (\x y -> List [x, y]) formal args
           in
-            eval env (Let args' body)
+            eval closure (Let args' body)
       Nothing -> (env, apply func $ map (snd . eval env) args)
 
 -- Progn, evaluate a list of expressions sequentially
