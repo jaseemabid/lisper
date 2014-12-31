@@ -52,7 +52,7 @@ instance Show LispVal where
   show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
   show (String s) = "\"" ++ s ++ "\""
   show (Number n) = show n
-  show (Function env name args body) = " < λ " ++ name ++ " > "
+  show (Function _ name _ _) = " < λ " ++ name ++ " > "
   show (Bool True) = "#t"
   show (Bool False) = "#f"
 
@@ -205,7 +205,7 @@ eval env (Defun name args body) = ((name, fn) : env, fn) where
 -- Function application
 eval env (List (Atom func : args)) =
     case lookup func env of
-      Just(Function closure name formal body) ->
+      Just(Function closure _ formal body) ->
           let
               args' = List $ zipWith (\x y -> List [x, y]) formal args
           in
