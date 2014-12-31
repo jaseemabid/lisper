@@ -10,6 +10,7 @@ import Text.ParserCombinators.Parsec
 
 data LispVal = Atom String
              | List [LispVal]
+             | Function Env String [LispVal] LispVal
              | DottedList [LispVal] LispVal
              | Number Integer
              | String String
@@ -22,6 +23,8 @@ pattern NIL = List []
 
 -- Special forms
 pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
+pattern Defun name args body = List [Atom "defun", Atom name, List args, body]
+
 pattern Let args body = List [Atom "let", args, body]
 pattern Quote = Atom "quote"
 pattern Set var val = List [Atom "set!", (Atom var), val]
@@ -49,6 +52,7 @@ instance Show LispVal where
   show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
   show (String s) = "\"" ++ s ++ "\""
   show (Number n) = show n
+  show (Function env name args body) = " < λ " ++ name ++ " > "
   show (Bool True) = "#t"
   show (Bool False) = "#f"
 
@@ -194,9 +198,19 @@ eval env (If predicate conseq alt) =
 -- Set special form
 eval env (Set var val) = ((var, val) : env, val)
 
+-- Function definitions
+eval env (Defun name args body) = ((name, fn) : env, fn) where
+    fn = Function env name args body
+
 -- Function application
 eval env (List (Atom func : args)) =
-    (env, apply func $ map (snd . eval env) args)
+    case lookup func env of
+      Just(Function closure name formal body) ->
+          let
+              args' = List $ zipWith (\x y -> List [x, y]) formal args
+          in
+            eval env (Let args' body)
+      Nothing -> (env, apply func $ map (snd . eval env) args)
 
 -- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
