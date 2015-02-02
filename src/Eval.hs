@@ -10,8 +10,8 @@ import Data.List (nub, (\\))
 
 -- Evaluate an expression and return the new environment and the result of the
 -- evaluation. Env should mostly be unmodified unless the body is of the form of
--- a `defun` or a `set`. A `set` or `defun` should return an environment with a
--- new key, while a let expression should return the same env unmodified.
+-- a `define` or a `set`. A `set` or `define` should return an environment with
+-- a new key, while a let expression should return the same env unmodified.
 
 eval :: Env -> LispVal -> (Env, LispVal)
 
@@ -52,7 +52,7 @@ eval env (If predicate conseq alt) =
 eval env (Set var val) = ((var, val) : env, val)
 
 -- Function definitions
-eval env (Defun name args body) =
+eval env (Define name args body) =
     case duplicates args of
       [] -> ((name, fn) : env, fn)
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"

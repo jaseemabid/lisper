@@ -44,7 +44,7 @@ pattern NIL = List []
 
 -- Special forms
 pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
-pattern Defun name args body = List [Atom "defun", Atom name, List args, body]
+pattern Define name args body = List [Atom "define", List (Atom name : args), body]
 
 pattern Let args body = List [Atom "let", args, body]
 pattern Quote = Atom "quote"
