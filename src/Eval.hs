@@ -6,6 +6,7 @@ module Eval (eval, progn, exec) where
 import Core
 import Parser
 import Primitives
+import Data.List (nub, (\\))
 
 -- Evaluate an expression and return the new environment and the result of the
 -- evaluation. Env should mostly be unmodified unless the body is of the form of
@@ -51,8 +52,11 @@ eval env (If predicate conseq alt) =
 eval env (Set var val) = ((var, val) : env, val)
 
 -- Function definitions
-eval env (Defun name args body) = ((name, fn) : env, fn) where
-    fn = Function env name args body
+eval env (Defun name args body) =
+    case duplicates (args) of
+      [] -> ((name, fn) : env, fn)
+      x -> error $ "Duplicate arguments " ++ (show x)
+    where fn = Function env name args body
 
 -- Function application
 eval env (List (Atom func : args)) =
@@ -78,3 +82,7 @@ exec = print . snd . progn [] . readExpr
 apply :: String -> [LispVal] -> LispVal
 apply func args = maybe (error err) ($ args) $ lookup func primitives where
     err = "Undefined function " ++ show func
+
+-- Return duplicate items in the list
+duplicates :: [LispVal] -> [LispVal]
+duplicates xs = xs \\ nub xs
