@@ -53,9 +53,9 @@ eval env (Set var val) = ((var, val) : env, val)
 
 -- Function definitions
 eval env (Defun name args body) =
-    case duplicates (args) of
+    case duplicates args of
       [] -> ((name, fn) : env, fn)
-      x -> error $ "Duplicate argument " ++ (show x) ++ " in function definition"
+      x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
     where fn = Function env name args body
 
 -- Function application
@@ -70,6 +70,7 @@ eval env (List (Atom func : args)) =
 
 -- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
+progn env [] = (env, NIL)
 progn env [x] = eval env x
 progn env (x:xs) = case eval env x of
                      (env', _) -> progn env' xs

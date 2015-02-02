@@ -68,6 +68,7 @@ parser :: Parser [LispVal]
 parser = many1 parseExpr
 
 readExpr :: String -> [LispVal]
+readExpr "" = []
 readExpr input = case parse parser "exp" input of
                    Right x -> x
                    Left err -> error $ "Cannot parse expr : " ++ show err
