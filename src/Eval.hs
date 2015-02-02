@@ -55,7 +55,7 @@ eval env (Set var val) = ((var, val) : env, val)
 eval env (Defun name args body) =
     case duplicates (args) of
       [] -> ((name, fn) : env, fn)
-      x -> error $ "Duplicate arguments " ++ (show x)
+      x -> error $ "Duplicate argument " ++ (show x) ++ " in function definition"
     where fn = Function env name args body
 
 -- Function application
