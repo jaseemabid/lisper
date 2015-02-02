@@ -21,7 +21,7 @@ parseArgs [file] = readFile file >>= exec >> exitSuccess
 parseArgs _ = usage >> exitSuccess
 
 usage :: IO ()
-usage = putStrLn "Usage: lisper [-vh] [file ..]"
+usage = putStrLn "Usage: lisper [-vh] [-c expr] [file] "
 
 version :: IO ()
 version = putStrLn "The Glorious lisp, version 0.1.0.0"
