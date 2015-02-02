@@ -27,6 +27,18 @@ instance Show LispVal where
   show (Bool True) = "#t"
   show (Bool False) = "#f"
 
+instance Eq LispVal where
+    (==) (Atom a) (Atom b) = a == b
+    (==) (List a) (List b) = a == b
+    (==) (DottedList a b) (DottedList c d) = a == c && b == d
+    (==) (String a) (String b) = a == b
+    (==) (Number a) (Number b) = a == b
+    (==) (Bool a) (Bool b) = a == b
+    (==) (Function _ _ _ _) (Function _ _ _ _) =
+        error "Cannot compare functions"
+    (==) _ _ = error "Cannot compare arbitrary types"
+
+
 -- Patterns for pattern matching ;)
 pattern NIL = List []
 
