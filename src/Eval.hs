@@ -49,7 +49,13 @@ eval env (If predicate conseq alt) =
     in f $ snd $ eval env predicate
 
 -- Set special form
-eval env (Set var val) = ((var, val) : env, val)
+eval env (Set var val) =
+    case val of
+      Atom alias ->
+          case lookup alias env of
+            Just link -> eval env (Set var link)
+            Nothing -> error $ "Undefined variable " ++ show alias
+      _ -> ((var, val) : env, val)
 
 -- Function definitions
 eval env (Define name args body) =
