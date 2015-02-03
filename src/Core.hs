@@ -6,7 +6,7 @@ module Core where
 
 data LispVal = Atom String
              | List [LispVal]
-             | Function Env String [LispVal] LispVal
+             | Function Env (Maybe String) [LispVal] LispVal
              | DottedList [LispVal] LispVal
              | Number Integer
              | String String
@@ -23,7 +23,8 @@ instance Show LispVal where
   show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
   show (String s) = "\"" ++ s ++ "\""
   show (Number n) = show n
-  show (Function _ name _ _) = " < λ " ++ name ++ " > "
+  show (Function _ (Just name) _ _) = " <λ " ++ name ++ " >"
+  show (Function _ Nothing _ _) = " <λ> "
   show (Bool True) = "#t"
   show (Bool False) = "#f"
 
@@ -45,6 +46,7 @@ pattern NIL = List []
 -- Special forms
 pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
 pattern Define name args body = List [Atom "define", List (Atom name : args), body]
+pattern Lambda args body = List [Atom "lambda", List args, body]
 
 pattern Let args body = List [Atom "let", args, body]
 pattern Quote = Atom "quote"

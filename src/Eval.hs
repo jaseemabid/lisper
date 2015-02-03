@@ -62,16 +62,35 @@ eval env (Define name args body) =
     case duplicates args of
       [] -> ((name, fn) : env, fn)
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-    where fn = Function env name args body
+    where fn = Function env (Just name) args body
+
+-- Lambda definition
+eval env (Lambda args body) =
+    case duplicates args of
+      [] -> (env, fn)
+      x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
+    where fn = Function env Nothing args body
 
 -- Function application
 eval env (List (Atom func : args)) =
     case lookup func env of
+
+      -- Function application with name, which might be defined with a `define`
+      -- or `set!`
       Just(Function closure _ formal body) ->
           let
               args' = List $ zipWith (\x y -> List [x, y]) formal args
           in
             (env, snd $ eval closure (Let args' body))
+
+      -- Inline lambda invocation. Forces evaluation of lambda expression, and
+      -- then applies it with given arguments.
+      Just(Lambda formal body) ->
+          let
+              args' = List $ zipWith (\x y -> List [x, y]) formal args
+          in
+            eval env (Let args' body)
+
       Nothing -> (env, apply func $ map (snd . eval env) args)
 
 -- Progn, evaluate a list of expressions sequentially
