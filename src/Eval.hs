@@ -106,8 +106,10 @@ exec = print . snd . progn [] . readExpr
 
 -- Helpers
 apply :: String -> [LispVal] -> LispVal
-apply func args = maybe (error err) ($ args) $ lookup func primitives where
-    err = "Undefined function " ++ show func
+apply func args =
+    case lookup func primitives of
+      Just primitive -> primitive args
+      Nothing -> error $ "Undefined function " ++ show func
 
 -- Return duplicate items in the list
 duplicates :: [LispVal] -> [LispVal]
