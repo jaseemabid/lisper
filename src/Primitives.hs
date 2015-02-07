@@ -3,7 +3,10 @@ import Core
 
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
-primitives = [("*", numericBinop (*)),
+primitives = [("car", car),
+              ("cdr", cdr),
+              ("cons", cons),
+              ("*", numericBinop (*)),
               ("+", numericBinop (+)),
               ("-", numericBinop (-)),
               ("/", numericBinop div),
@@ -17,6 +20,19 @@ primitives = [("*", numericBinop (*)),
               ("quot", numericBinop quot),
               ("quote", head),
               ("rem", numericBinop rem)]
+
+-- Lisp primitives
+car :: [LispVal] -> LispVal
+car [List (t : _)] = t
+car x = error $ "car expected a single list, got " ++ show x
+
+cdr :: [LispVal] -> LispVal
+cdr [List (_ : t)] = List t
+cdr x = error $ "cdr expected a single list, got " ++ show x
+
+cons :: [LispVal] -> LispVal
+cons (h : [List t]) = List (h:t)
+cons x = error $ "cons expected a value and a list, got " ++ show x
 
 -- [todo] Add input type to error message
 -- [todo] Possibly auto generate unpack*
