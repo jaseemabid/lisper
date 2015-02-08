@@ -71,27 +71,31 @@ eval env (Lambda args body) =
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
     where fn = Function env Nothing args body
 
--- Function application
+-- Function application with name
 eval env (List (Atom func : args)) =
     case lookup func env of
 
-      -- Function application with name, which might be defined with a `define`
-      -- or `set!`
-      Just(Function closure _ formal body) ->
-          let
-              args' = List $ zipWith (\x y -> List [x, y]) formal args
-          in
-            (env, snd $ eval closure (Let args' body))
+      -- Function application with name
+      Just fn@Function {} -> apply env fn args
 
-      -- Inline lambda invocation. Forces evaluation of lambda expression, and
-      -- then applies it with given arguments.
-      Just(Lambda formal body) ->
-          let
-              args' = List $ zipWith (\x y -> List [x, y]) formal args
-          in
-            eval env (Let args' body)
+      -- Lambda invocation with name
+      Just lambda@Lambda {} -> apply env fn args
+          where fn = snd $ eval env lambda
 
-      Nothing -> (env, apply func $ map (snd . eval env) args)
+      Nothing -> (env, applyPrimitive func $ map (snd . eval env) args)
+
+-- Inline lambda invocation
+eval env (List (lambda@Lambda {} : args)) = apply env fn args
+    where fn = snd $ eval env lambda
+
+-- Apply a function with a list of arguments
+apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
+apply env fn args = case fn of
+      (Function closure _ formal body) ->
+          let
+              alist = List $ zipWith (\x y -> List [x, y]) formal args
+          in
+            (env, snd $ eval (closure ++ env) (Let alist body))
 
 -- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
@@ -105,8 +109,8 @@ exec :: String -> IO ()
 exec = print . snd . progn [] . readExpr
 
 -- Helpers
-apply :: String -> [LispVal] -> LispVal
-apply func args =
+applyPrimitive :: String -> [LispVal] -> LispVal
+applyPrimitive func args =
     case lookup func primitives of
       Just primitive -> primitive args
       Nothing -> error $ "Undefined function " ++ show func
