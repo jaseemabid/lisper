@@ -23,9 +23,7 @@ eval env val@(Bool _) = (env, val)
 eval env (List [Quote, val]) = (env, val)
 
 -- Variable lookup, forcing an evaluation
-eval env (Atom key) = case lookup key env of
-                        Just v -> eval env v
-                        Nothing -> error $ "Undefined variable " ++ key
+eval env (Atom key) = eval env $ resolve env key
 
 -- Let special form
 eval env (Let args body) = eval' env args
@@ -51,10 +49,8 @@ eval env (If predicate conseq alt) =
 -- Set special form
 eval env (Set var val) =
     case val of
-      Atom alias ->
-          case lookup alias env of
-            Just link -> eval env (Set var link)
-            Nothing -> error $ "Undefined variable " ++ show alias
+      Atom alias -> ((var, resolved) : env, resolved)
+          where resolved = resolve env alias
       _ -> ((var, val) : env, val)
 
 -- Function definitions
@@ -89,13 +85,27 @@ eval env (List (lambda@Lambda {} : args)) = apply env fn args
     where fn = snd $ eval env lambda
 
 -- Apply a function with a list of arguments
+
+-- The `alist` is constructed in such a way that all bindings refer to concrete
+-- values, rather than other references.
+--
+-- The alist of the form `((x a))`, rather than `((x 42))` will cause `a` to be
+-- looked up in the function closure, rather than the caller's environment.
+-- This is prevented by `resolving` the value of each argument to a value other
+-- than an atom before zipping with the formal arguments.
+--
+-- This gives the added benefit that the caller's environment is not needed
+-- while evaluating the function body, preventing behavior similar to dynamic
+-- scoping.
+
 apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
 apply env fn args = case fn of
       (Function closure _ formal body) ->
           let
-              alist = List $ zipWith (\x y -> List [x, y]) formal args
+              zipper x (Atom y) = List [x, resolve env y]
+              alist = List $ zipWith zipper formal args
           in
-            (env, snd $ eval (closure ++ env) (Let alist body))
+            (env, snd $ eval closure $ Let alist body)
 
 -- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
@@ -118,3 +128,15 @@ applyPrimitive func args =
 -- Return duplicate items in the list
 duplicates :: [LispVal] -> [LispVal]
 duplicates xs = xs \\ nub xs
+
+-- Resolves a variable reference to a concrete value by walking up the link
+resolve :: Env -> String -> LispVal
+resolve env key =
+    case lookup key env of
+      Just (Atom link) -> resolve env link
+      Just v -> v
+      Nothing -> error $ "Undefined variable " ++ key
+
+          -- case lookup alias env of
+          --   Just link -> eval env (Set var link)
+          --   Nothing -> error $ "Undefined variable " ++ show alias
