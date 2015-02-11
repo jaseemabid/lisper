@@ -12,4 +12,14 @@ IO can be a compromise for now, I think.
 - [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
 - https://github.com/haskell-lisp
 
+*** Getting started
+
+1. Clone the repository and install with cabal.
+2. `$ cabal repl` will give you a shell with the project imported
+3. The top level function `exec` takes a string as argument and returns the
+   evaluated result. Eg: `> exec "(define (add x y) (+ x y)) (add 1 2))` will
+   print 3.
+
+*** License
+
 MIT licensed.
