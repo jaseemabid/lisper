@@ -136,7 +136,3 @@ resolve env key =
       Just (Atom link) -> resolve env link
       Just v -> v
       Nothing -> error $ "Undefined variable " ++ key
-
-          -- case lookup alias env of
-          --   Just link -> eval env (Set var link)
-          --   Nothing -> error $ "Undefined variable " ++ show alias
