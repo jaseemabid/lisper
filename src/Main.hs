@@ -6,19 +6,18 @@ import Eval (exec)
 import Repl (runRepl)
 
 import System.Environment (getArgs)
-import System.Exit (exitSuccess)
 
 -- Main
 main :: IO ()
-main = getArgs >>= parseArgs >>= putStr
+main = getArgs >>= parseArgs
 
-parseArgs :: [String] -> IO a
-parseArgs ["-c", sexp] = exec sexp >> exitSuccess
-parseArgs ["-h"] = usage >> exitSuccess
-parseArgs ["-v"] = version >> exitSuccess
-parseArgs [] = runRepl >> exitSuccess
-parseArgs [file] = readFile file >>= exec >> exitSuccess
-parseArgs _ = usage >> exitSuccess
+parseArgs :: [String] -> IO ()
+parseArgs ["-c", sexp] = exec sexp
+parseArgs ["-h"] = usage
+parseArgs ["-v"] = version
+parseArgs [] = runRepl
+parseArgs [file] = readFile file >>= exec
+parseArgs _ = usage
 
 usage :: IO ()
 usage = putStrLn "Usage: lisper [-vh] [-c expr] [file] "
