@@ -28,6 +28,7 @@ eval env (Atom key) = eval env $ resolve env key
 -- Let special form
 eval env (Let args body) = eval' env args
     where
+      makeEnv :: LispVal -> Env -> Env
       makeEnv item env' =
           case item of
             List[Atom a, val] -> (a, val) : env'
