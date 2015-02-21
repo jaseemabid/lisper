@@ -23,7 +23,7 @@ clone the repo; cd lisper;
 5. cabal build # binaries in ./dist/built/lisper/*
 6. `$ cabal repl` will give you a shell with the project imported
 7. The top level function `exec` takes a string as argument and returns the
-   evaluated result. Eg: `> exec "(define (add x y) (+ x y)) (add 1 2))` will
+   evaluated result. Eg: `> exec "(define (add x y) (+ x y)) (add 1 2)` will
    print 3.
 
 *** License
