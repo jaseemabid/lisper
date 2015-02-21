@@ -49,10 +49,8 @@ eval env (If predicate conseq alt) =
 
 -- Set special form
 eval env (Set var val) =
-    case val of
-      Atom alias -> ((var, resolved) : env, resolved)
-          where resolved = resolve env alias
-      _ -> ((var, val) : env, val)
+    let real = snd $ eval env val
+    in ((var, real) : env, real)
 
 -- Function definitions
 eval env (Define name args body) =
