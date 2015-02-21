@@ -14,8 +14,8 @@ main = getArgs >>= parseArgs
 parseArgs :: [String] -> IO ()
 parseArgs ["-c", sexp] = exec sexp
 parseArgs ["-h"] = usage
+parseArgs ["-i"] = runRepl
 parseArgs ["-v"] = version
-parseArgs [] = runRepl
 parseArgs [file] = readFile file >>= exec
 parseArgs _ = usage
 
