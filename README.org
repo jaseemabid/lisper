@@ -1,5 +1,7 @@
 * Lisper
 
+[[https://travis-ci.org/jaseemabid/lisper][file:https://travis-ci.org/jaseemabid/lisper.svg?branch=master]]
+
 A tiny *WIP* statically typed, immutable, lazy, pattern matched lisp interpreter
 in haskell. A micro haskell with lisp semantics to learn Haskell as well as
 lisp.
