@@ -1,6 +1,6 @@
-module Repl (runRepl) where
+module Lisper.Repl (runRepl) where
 
-import Eval (exec)
+import Lisper.Eval (exec)
 
 import System.IO (hFlush, stdout)
 import Control.Monad (unless)

@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Eval (eval, progn, exec) where
+module Lisper.Eval (eval, progn, exec, resolve) where
 
-import Core
-import Parser
-import Primitives
+import Lisper.Core
+import Lisper.Parser
+import Lisper.Primitives
 import Data.List (nub, (\\))
 
 -- Evaluate an expression and return the new environment and the result of the

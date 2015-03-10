@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 -- Core data strctures and functions on them
-module Core where
+module Lisper.Core where
 
 data LispVal = Atom String
              | List [LispVal]

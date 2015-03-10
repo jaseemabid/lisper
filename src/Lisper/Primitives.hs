@@ -1,5 +1,5 @@
-module Primitives (primitives) where
-import Core
+module Lisper.Primitives (primitives) where
+import Lisper.Core
 
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]

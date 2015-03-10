@@ -1,4 +1,4 @@
-module Util (debug) where
+module Lisper.Util (debug) where
 
 import Debug.Trace (trace)
 

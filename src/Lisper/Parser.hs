@@ -3,9 +3,9 @@
 
 -- Parser
 
-module Parser (parser, readExpr) where
+module Lisper.Parser (parser, readExpr) where
 
-import Core
+import Lisper.Core
 import Control.Monad (liftM)
 import Text.ParserCombinators.Parsec
 
