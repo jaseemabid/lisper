@@ -6,6 +6,7 @@ module Lisper.Eval (eval, progn, exec, resolve) where
 import Lisper.Core
 import Lisper.Parser
 import Lisper.Primitives
+import Data.Maybe (fromJust)
 import Data.List (nub, (\\))
 
 -- Evaluate an expression and return the new environment and the result of the
@@ -23,7 +24,7 @@ eval env val@(Bool _) = (env, val)
 eval env (List [Quote, val]) = (env, val)
 
 -- Variable lookup, forcing an evaluation
-eval env (Atom key) = eval env $ resolve env key
+eval env (Atom key) = eval env $ fromJust $ resolve env key
 
 -- Let special form
 eval env (Let args body) = eval' env args
@@ -101,7 +102,7 @@ apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
 apply env fn args = case fn of
       (Function closure _ formal body) ->
           let
-              zipper x (Atom y) = List [x, resolve env y]
+              zipper x (Atom y) = List [x, fromJust $ resolve env y]
               alist = List $ zipWith zipper formal args
           in
             (env, snd $ eval closure $ Let alist body)
@@ -129,9 +130,9 @@ duplicates :: [LispVal] -> [LispVal]
 duplicates xs = xs \\ nub xs
 
 -- Resolves a variable reference to a concrete value by walking up the link
-resolve :: Env -> String -> LispVal
+resolve :: Env -> String -> Maybe LispVal
 resolve env key =
     case lookup key env of
       Just (Atom link) -> resolve env link
-      Just v -> v
-      Nothing -> error $ "Undefined variable " ++ key
+      Just v -> Just v
+      Nothing -> Nothing
