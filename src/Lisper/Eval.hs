@@ -117,8 +117,8 @@ progn env (x:xs) = case eval env x of
                      (env', _) -> progn env' xs
 
 -- Top level evaluator.
-exec :: String -> IO ()
-exec = print . snd . progn [] . readExpr
+exec :: String -> LispVal
+exec = snd . progn [] . readExpr
 
 -- Helpers
 applyPrimitive :: String -> [LispVal] -> LispVal

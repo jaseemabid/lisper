@@ -18,4 +18,4 @@ until_ predicate prompt action = do
   unless (predicate input) $ action input >> until_ predicate prompt action
 
 runRepl :: IO ()
-runRepl = until_ (== "/q") (readPrompt "λ> ") exec
+runRepl = until_ (== "/q") (readPrompt "λ> ") $ print . exec
