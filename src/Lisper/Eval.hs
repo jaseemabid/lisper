@@ -102,7 +102,9 @@ apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
 apply env fn args = case fn of
       (Function closure _ formal body) ->
           let
+              zipper :: LispVal -> LispVal -> LispVal
               zipper x (Atom y) = List [x, fromJust $ resolve env y]
+              zipper x value = List [x, value]
               alist = List $ zipWith zipper formal args
           in
             (env, snd $ eval closure $ Let alist body)
