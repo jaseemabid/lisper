@@ -25,8 +25,13 @@ testBadRef :: TestTree
 testBadRef = testCase "Should fail for missing references" $
              resolve env "t" @?= Nothing
 
+lambdaEval :: TestTree
+lambdaEval = testCase "Should evaluate lambda expresssions" $
+             exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
+
 unitTests :: TestTree
-unitTests = testGroup "Unit tests" [testSimple, testFail, testRef, testBadRef]
+unitTests = testGroup "Unit tests"
+            [testSimple, testFail, testRef, testBadRef, lambdaEval]
 
 tests :: TestTree
 tests = testGroup "Tests" [unitTests]
