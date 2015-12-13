@@ -27,18 +27,17 @@ eval env (List [Quote, val]) = (env, val)
 eval env (Atom key) = eval env $ fromJust $ resolve env key
 
 -- Let special form
-eval env (Let args body) = eval' env args
+eval env (Let args body) = (env, snd $ eval extended body)
     where
-      makeEnv :: LispVal -> Env -> Env
-      makeEnv item env' =
-          case item of
-            List[Atom a, val] -> (a, val) : env'
+      -- Transforms a let args tuple list to env
+      -- (let ((atom_a num_1) (atom_b num_2)) (+ a b)) -> [(a num_1) (b num_2)]
+      argsToEnv :: LispVal -> Env
+      argsToEnv (List []) = env
+      argsToEnv (List xs) = map (\(List[Atom a, val]) -> (a, val)) xs
+      argsToEnv _ = error "Second argument to let should be an alist"
 
-      eval' env' args' =
-          case args' of
-            List[v] -> (env, snd $ eval (makeEnv v env') body)
-            List(v:rest) -> eval' (makeEnv v env') (List rest)
-            _ -> error "Second argument to let should be an alist"
+      extended :: Env
+      extended = argsToEnv args
 
 -- If special form
 eval env (If predicate conseq alt) =
