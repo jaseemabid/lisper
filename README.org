@@ -16,17 +16,15 @@ IO can be a compromise for now, I think.
 
 *** Getting started
 
-clone the repo; cd lisper;
+    $ git clone https://github.com/jaseemabid/lisper && cd lisper
+    $ stack build
+    $ stack test
 
-1. git clone https://github.com/jaseemabid/lisper && cd lisper
-2. cabal sandbox init
-3. wget http://www.stackage.org/lts/cabal.config
-4. cabal install --only-dependencies
-5. cabal build # binaries in ./dist/built/lisper/*
-6. `$ cabal repl` will give you a shell with the project imported
-7. The top level function `exec` takes a string as argument and returns the
-   evaluated result. Eg: `> exec "(define (add x y) (+ x y)) (add 1 2)` will
-   print 3.
+*** Evaluating examples with REPL
+
+    $ cabal repl
+    λ: exec "(+ 1 2)"
+    3
 
 *** License
 

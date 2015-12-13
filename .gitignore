@@ -1,12 +1,6 @@
-dist
-cabal-dev
-*.o
-*.hi
 *.chi
 *.chs.h
-.virtualenv
+*.hi
+*.o
 .hsenv
-.cabal-sandbox/
-cabal.sandbox.config
-cabal.config
-/lisper-test.tix
+.stack-work
