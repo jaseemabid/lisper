@@ -9,43 +9,50 @@ import Lisper.Eval
 env :: Env
 env = [("one", Number 1), ("ref", Atom "one"), ("t", Atom "two")]
 
-testSimple :: TestTree
-testSimple = testCase "Should get variables"  $
-             resolve env "one" @?= Just (Number 1)
+-- Resolve tests
+resSimple :: TestTree
+resSimple = testCase "Should get variables"  $
+            resolve env "one" @?= Just (Number 1)
 
-testFail :: TestTree
-testFail = testCase "Should fail for missing variables" $
-           resolve env "nope" @?= Nothing
-testRef :: TestTree
-testRef = testCase "Should get references" $
-          resolve env "ref" @?= Just (Number 1)
+resRef :: TestTree
+resRef = testCase "Should get references" $
+         resolve env "ref" @?= Just (Number 1)
 
--- Should this be `Atom "two"` ?
-testBadRef :: TestTree
-testBadRef = testCase "Should fail for missing references" $
-             resolve env "t" @?= Nothing
+resFail :: TestTree
+resFail = testCase "Should fail for missing variables" $
+          resolve env "nope" @?= Nothing
 
-lambdaEval :: TestTree
-lambdaEval = testCase "Should evaluate lambda expresssions" $
-             exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
+resBadRef :: TestTree
+resBadRef = testCase "Should fail for missing references" $
+            resolve env "t" @?= Nothing
+
+-- Special forms evaluations
+lambda :: TestTree
+lambda = testCase "Should evaluate lambda expresssions" $
+         exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
 
 define :: TestTree
-define = testCase "Should evaluate define expresssions" $
-         case run "(define (x) (+ 1 x))" of
-           ([("x", _)], _) -> return ()
+define = testCase "Should evaluate define expresssions" $ do
+         case run "(define (add x) (+ 1 x))" of
+           ([("add", _)], _) -> return ()
            x -> assertString $ show x
 
-defineEval :: TestTree
-defineEval = testCase "Should evaluate define expresssions" $
-             exec "((define (x) (+ 1 x)) 41)" @?= Number 42
+         exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
 
-unitTests :: TestTree
-unitTests = testGroup "Unit tests"
-            [testSimple, testFail, testRef, testBadRef, lambdaEval, define,
-             defineEval]
+         exec "((define (x) (+ 1 x)) 41)" @?= Number 42
+
+let_ :: TestTree
+let_ = testCase "Should evaluate let bindings " $
+       exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+
+res :: TestTree
+res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
+
+special :: TestTree
+special = testGroup "Special forms" [lambda, define, let_]
 
 tests :: TestTree
-tests = testGroup "Tests" [unitTests]
+tests = testGroup "Unit Tests" [res, special]
 
 main :: IO ()
 main = defaultMain tests
