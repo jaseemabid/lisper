@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Lisper.Eval (eval, progn, exec, resolve) where
+module Lisper.Eval (eval, exec, progn, resolve, run) where
 
 import Lisper.Core
 import Lisper.Parser
@@ -116,9 +116,13 @@ progn env [x] = eval env x
 progn env (x:xs) = case eval env x of
                      (env', _) -> progn env' xs
 
--- Top level evaluator.
+-- Evaluate a script and return result and env
+run :: String -> (Env, LispVal)
+run = progn [] . readExpr
+
+-- Evaluate a script and return result
 exec :: String -> LispVal
-exec = snd . progn [] . readExpr
+exec = snd . run
 
 -- Helpers
 applyPrimitive :: String -> [LispVal] -> LispVal

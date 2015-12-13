@@ -29,9 +29,20 @@ lambdaEval :: TestTree
 lambdaEval = testCase "Should evaluate lambda expresssions" $
              exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
 
+define :: TestTree
+define = testCase "Should evaluate define expresssions" $
+         case run "(define (x) (+ 1 x))" of
+           ([("x", _)], _) -> return ()
+           x -> assertString $ show x
+
+defineEval :: TestTree
+defineEval = testCase "Should evaluate define expresssions" $
+             exec "((define (x) (+ 1 x)) 41)" @?= Number 42
+
 unitTests :: TestTree
 unitTests = testGroup "Unit tests"
-            [testSimple, testFail, testRef, testBadRef, lambdaEval]
+            [testSimple, testFail, testRef, testBadRef, lambdaEval, define,
+             defineEval]
 
 tests :: TestTree
 tests = testGroup "Tests" [unitTests]
