@@ -97,17 +97,19 @@ eval env (List (lambda@Lambda {} : args)) = apply env fn args
 -- This gives the added benefit that the caller's environment is not needed
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
-
 apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
-apply env fn args = case fn of
-      (Function closure _ formal body) ->
-          let
-              zipper :: LispVal -> LispVal -> LispVal
-              zipper x (Atom y) = List [x, fromJust $ resolve env y]
-              zipper x value = List [x, value]
-              alist = List $ zipWith zipper formal args
-          in
-            (env, snd $ eval closure $ Let alist body)
+apply env (Function closure _name formal body) args =
+    (env, snd $ eval closure $ Let alist body)
+
+  where
+    zipper :: LispVal -> LispVal -> LispVal
+    zipper x (Atom y) = List [x, fromJust $ resolve env y]
+    zipper x value = List [x, value]
+
+    alist :: LispVal
+    alist = List $ zipWith zipper formal args
+
+apply _env fn _args = error $ "Apply needs a function, called with " ++ show fn
 
 -- Progn, evaluate a list of expressions sequentially
 progn :: Env -> [LispVal] -> (Env, LispVal)
