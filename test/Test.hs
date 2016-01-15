@@ -45,9 +45,17 @@ define = testCase "Should define named functions" $
       x -> assertString $ show x
 
 defineExec :: TestTree
-defineExec = testCase "Should apply named funtions" $ do
+defineExec = testCase "Should apply named functions" $ do
     exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
     exec "((define (const) 42) (const))" @?= Number 42
+
+fact :: TestTree
+fact = testCase "Should do recursive functions" $
+  exec "(define (fact x) \
+       \    (if (= x 0) \
+       \      1 \
+       \      (* x (fact (- x 1))))) \
+       \ (fact 5)" @?= Number 120
 
 let_ :: TestTree
 let_ = testCase "Should evaluate let bindings " $
@@ -58,7 +66,7 @@ res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
 
 special :: TestTree
 special = testGroup "Special forms" [lambda, lambdaExec, define, defineExec,
-                                     let_]
+                                     fact, let_]
 
 tests :: TestTree
 tests = testGroup "Unit Tests" [res, special]
