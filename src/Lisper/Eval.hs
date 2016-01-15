@@ -64,24 +64,18 @@ eval env (Lambda args body) =
     case duplicates args of
       [] -> (env, fn)
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-    where fn = Function env Nothing args body
+  where fn = Function env Nothing args body
 
 -- Function application with name
 eval env (List (Atom func : args)) =
     case lookup func env of
-
       -- Function application with name
-      Just fn@Function {} -> apply env fn args
-
-      -- Lambda invocation with name
-      Just lambda@Lambda {} -> apply env fn args
-          where fn = snd $ eval env lambda
-
+      Just fn -> apply env fn args
       Nothing -> (env, applyPrimitive func $ map (snd . eval env) args)
 
--- Inline lambda invocation
-eval env (List (lambda@Lambda {} : args)) = apply env fn args
-    where fn = snd $ eval env lambda
+-- Inline function invocation
+eval env (List (function : args)) = apply env fn args
+  where fn = snd $ eval env function
 
 -- Apply a function with a list of arguments
 

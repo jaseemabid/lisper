@@ -28,18 +28,26 @@ resBadRef = testCase "Should fail for missing references" $
 
 -- Special forms evaluations
 lambda :: TestTree
-lambda = testCase "Should evaluate lambda expresssions" $
-         exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
+lambda = testCase "Should define lambda expressions" $
+         case run "(lambda (x) (+ 1 x))" of
+             -- [todo] - Compare AST
+             ([], _) -> return ()
+             x -> assertString $ show x
+
+lambdaExec :: TestTree
+lambdaExec = testCase "Should apply lambda expressions" $
+  exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
 
 define :: TestTree
-define = testCase "Should evaluate define expresssions" $ do
-         case run "(define (add x) (+ 1 x))" of
-           ([("add", _)], _) -> return ()
-           x -> assertString $ show x
+define = testCase "Should define named functions" $
+  case run "(define (add x) (+ 1 x))" of
+      ([("add", _)], _) -> return ()
+      x -> assertString $ show x
 
-         exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
-
-         exec "((define (x) (+ 1 x)) 41)" @?= Number 42
+defineExec :: TestTree
+defineExec = testCase "Should apply named funtions" $ do
+    exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
+    exec "((define (const) 42) (const))" @?= Number 42
 
 let_ :: TestTree
 let_ = testCase "Should evaluate let bindings " $
@@ -49,7 +57,8 @@ res :: TestTree
 res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
 
 special :: TestTree
-special = testGroup "Special forms" [lambda, define, let_]
+special = testGroup "Special forms" [lambda, lambdaExec, define, defineExec,
+                                     let_]
 
 tests :: TestTree
 tests = testGroup "Unit Tests" [res, special]
