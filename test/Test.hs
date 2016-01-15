@@ -26,7 +26,16 @@ resBadRef :: TestTree
 resBadRef = testCase "Should fail for missing references" $
             resolve env "t" @?= Nothing
 
+-- Primitives
+cons :: TestTree
+cons = testCase "Should make lists with cons" $
+       exec "(cons 1 '(2 3))" @?= List [Number 1, Number 2, Number 3]
+
 -- Special forms evaluations
+let_ :: TestTree
+let_ = testCase "Should evaluate let bindings" $
+       exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+
 lambda :: TestTree
 lambda = testCase "Should define lambda expressions" $
          case run "(lambda (x) (+ 1 x))" of
@@ -57,19 +66,18 @@ fact = testCase "Should do recursive functions" $
        \      (* x (fact (- x 1))))) \
        \ (fact 5)" @?= Number 120
 
-let_ :: TestTree
-let_ = testCase "Should evaluate let bindings " $
-       exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+primitives :: TestTree
+primitives = testGroup "Primitives" [cons]
 
 res :: TestTree
 res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
 
 special :: TestTree
-special = testGroup "Special forms" [lambda, lambdaExec, define, defineExec,
-                                     fact, let_]
+special = testGroup "Special forms" [let_, lambda, lambdaExec, define, defineExec,
+                                     fact]
 
 tests :: TestTree
-tests = testGroup "Unit Tests" [res, special]
+tests = testGroup "Unit Tests" [primitives, res, special]
 
 main :: IO ()
 main = defaultMain tests
