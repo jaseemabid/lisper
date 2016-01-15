@@ -6,23 +6,22 @@ A tiny *WIP* statically typed, immutable, lazy, pattern matched lisp interpreter
 in haskell. A micro haskell with lisp semantics to learn Haskell as well as
 lisp.
 
-IO can be a compromise for now, I think.
-
 *** Resources
 
-- [[http://dev.stephendiehl.com/hask/][What I Wish I Knew When Learning Haskell 2.1]]
+- [[http://dev.stephendiehl.com/hask/][What I Wish I Knew When Learning Haskell]]
 - [[http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours][Wikibook: Write yourself a scheme in 48 hours]]
 - https://github.com/haskell-lisp
 
 *** Getting started
 
+    $ brew install haskell-stack
     $ git clone https://github.com/jaseemabid/lisper && cd lisper
     $ stack build
     $ stack test
 
 *** Evaluating examples with REPL
 
-    $ cabal repl
+    $ stack repl
     λ: exec "(+ 1 2)"
     3
 
