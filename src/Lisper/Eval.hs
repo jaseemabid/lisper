@@ -30,7 +30,6 @@ eval env (Atom key) = eval env $ fromJust $ resolve env key
 eval env (Let args body) = (env, snd $ eval extended body)
     where
       -- Transforms a let args tuple list to env
-      -- (let ((atom_a num_1) (atom_b num_2)) (+ a b)) -> [(a num_1) (b num_2)]
       argsToEnv :: LispVal -> Env
       argsToEnv (List xs) = map (\(List[Atom a, val]) -> (a, val)) xs
       argsToEnv _ = error "Second argument to let should be an alist"
@@ -54,9 +53,11 @@ eval env (Set var val) =
 -- Function definitions
 eval env (Define name args body) =
     case duplicates args of
-      [] -> ((name, fn) : env, fn)
+      [] -> (env', fn)
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-    where fn = Function env (Just name) args body
+    where
+      fn = Function env' (Just name) args body
+      env' = (name, fn) : env
 
 -- Lambda definition
 eval env (Lambda args body) =
@@ -94,9 +95,10 @@ apply env (Function closure _name formal body) args =
     (env, snd $ eval closure $ Let alist body)
 
   where
+    -- We are strict! Zipper evaluates arguments before passing to functions
     zipper :: LispVal -> LispVal -> LispVal
     zipper x (Atom y) = List [x, fromJust $ resolve env y]
-    zipper x value = List [x, value]
+    zipper x value = List [x, snd $ eval env value]
 
     alist :: LispVal
     alist = List $ zipWith zipper formal args
