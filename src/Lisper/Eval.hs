@@ -32,12 +32,11 @@ eval env (Let args body) = (env, snd $ eval extended body)
       -- Transforms a let args tuple list to env
       -- (let ((atom_a num_1) (atom_b num_2)) (+ a b)) -> [(a num_1) (b num_2)]
       argsToEnv :: LispVal -> Env
-      argsToEnv (List []) = env
       argsToEnv (List xs) = map (\(List[Atom a, val]) -> (a, val)) xs
       argsToEnv _ = error "Second argument to let should be an alist"
 
       extended :: Env
-      extended = argsToEnv args
+      extended = argsToEnv args ++ env
 
 -- If special form
 eval env (If predicate conseq alt) =
