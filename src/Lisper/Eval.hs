@@ -16,10 +16,13 @@ import Data.List (nub, (\\))
 
 eval :: Env -> LispVal -> (Env, LispVal)
 
-eval env NIL = (env, NIL)
+-- Eval on primitive values is no-op
+eval env val@(List []) = (env, val)
 eval env val@(String _) = (env, val)
 eval env val@(Number _) = (env, val)
 eval env val@(Bool _) = (env, val)
+eval env val@(Function{}) = (env, val)
+eval env val@(DottedList _ _) = (env, val)
 
 eval env (List [Quote, val]) = (env, val)
 
