@@ -27,9 +27,17 @@ resBadRef = testCase "Should fail for missing references" $
             resolve env "t" @?= Nothing
 
 -- Primitives
+eq :: TestTree
+eq = testCase "Should have eq, car and cdr" $ do
+       exec "(eq (car '(1 2 3)) 1)" @?= Bool True
+       exec "(eq (cdr '(1 2 3)) '(2 3))" @?= Bool True
+       exec "(eq 1 2)" @?= Bool False
+       exec "(eq 1 '(1))" @?= Bool False
+
 cons :: TestTree
 cons = testCase "Should make lists with cons" $
        exec "(cons 1 '(2 3))" @?= List [Number 1, Number 2, Number 3]
+
 
 -- Special forms evaluations
 let_ :: TestTree
@@ -67,7 +75,7 @@ fact = testCase "Should do recursive functions" $
        \ (fact 5)" @?= Number 120
 
 primitives :: TestTree
-primitives = testGroup "Primitives" [cons]
+primitives = testGroup "Primitives" [eq, cons]
 
 res :: TestTree
 res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]

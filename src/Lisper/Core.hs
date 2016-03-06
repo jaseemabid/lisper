@@ -35,10 +35,8 @@ instance Eq LispVal where
     (==) (String a) (String b) = a == b
     (==) (Number a) (Number b) = a == b
     (==) (Bool a) (Bool b) = a == b
-    (==) (Function _ _ _ _) (Function _ _ _ _) =
-        error "Cannot compare functions"
-    (==) _ _ = error "Cannot compare arbitrary types"
-
+    (==) (Function _ _ _ _) (Function _ _ _ _) = False
+    (==) _a _b = False
 
 -- Patterns for pattern matching ;)
 pattern NIL = List []

@@ -3,7 +3,8 @@ import Lisper.Core
 
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
-primitives = [("car", car),
+primitives = [("eq", eq),
+              ("car", car),
               ("cdr", cdr),
               ("cons", cons),
               ("*", numericBinop (*)),
@@ -22,6 +23,10 @@ primitives = [("car", car),
               ("rem", numericBinop rem)]
 
 -- Lisp primitives
+eq :: [LispVal] -> LispVal
+eq (a : b : []) = Bool $ (a == b)
+eq x = error $ "eq expected 2 arguments" ++ show x
+
 car :: [LispVal] -> LispVal
 car [List (t : _)] = t
 car x = error $ "car expected a single list, got " ++ show x
