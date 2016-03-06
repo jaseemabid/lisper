@@ -14,10 +14,9 @@ main = getArgs >>= parseArgs
 parseArgs :: [String] -> IO ()
 parseArgs ["-c", sexp] = (print . exec) sexp
 parseArgs ["-h"] = usage
-parseArgs ["-i"] = runRepl
 parseArgs ["-v"] = version
 parseArgs [file] = readFile file >>= print . exec
-parseArgs _ = usage
+parseArgs _ = runRepl
 
 usage :: IO ()
 usage = putStrLn "Usage: lisper [-vh] [-c expr] [file] "
