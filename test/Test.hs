@@ -83,6 +83,35 @@ curry' = testCase "Should do simple currying" $
        \(let ((add4 (curry add 4))) \
        \  (add4 4))" @?= Number 8
 
+merge :: TestTree
+merge = testCase "Should do merge sort" $
+  exec "(define (merge-sort l gt?)\
+        \  (define (merge left right)\
+        \    (cond\
+        \     ((null? left)\
+        \      right)\
+        \     ((null? right)\
+        \      left)\
+        \     ((gt? (car left) (car right))\
+        \      (cons (car right)\
+        \            (merge left (cdr right))))\
+        \     (else\
+        \      (cons (car left)\
+        \            (merge (cdr left) right)))))\
+        \  \
+        \  (define (take l n)\
+        \    (if (zero? n)\
+        \      (list)\
+        \      (cons (car l)\
+        \            (take (cdr l) (- n 1)))))\
+        \  \
+        \  (let ((half (quotient (length l) 2)))\
+        \    (if (zero? half)\
+        \      l\
+        \      (merge (merge-sort (take      l half) gt?)\
+        \             (merge-sort (list-tail l half) gt?)))))\
+        \(merge-sort '(1 3 5 7 9 8 6 4 2) >)" @?= List []
+
 primitives :: TestTree
 primitives = testGroup "Primitives" [eq, cons]
 
@@ -94,7 +123,7 @@ special = testGroup "Special forms" [let_, lambda, lambdaExec, define, defineExe
                                      fact]
 
 sample :: TestTree
-sample = testGroup "Sample Programs" [curry']
+sample = testGroup "Sample Programs" [curry', merge]
 
 tests :: TestTree
 tests = testGroup "Unit Tests" [primitives, res, special, sample]
