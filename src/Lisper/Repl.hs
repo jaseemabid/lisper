@@ -4,6 +4,9 @@ import           Lisper.Eval              (exec)
 import           System.Console.Haskeline
 
 -- [todo] - REPL must be stateful. *HIGH PRIORITY*
+-- [todo] - Improve input from stdin, Ie echo "(+ 1 1)" | lisper
+-- [todo] - If possible handle empty input from user with a no-op
+
 runRepl :: IO ()
 runRepl = runInputT settings loop
   where
