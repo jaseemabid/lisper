@@ -1,13 +1,16 @@
 module Main where
 
-import Test.Tasty
-import Test.Tasty.HUnit
+import           Test.Tasty
+import           Test.Tasty.HUnit
 
-import Lisper.Core
-import Lisper.Eval
+import           Lisper.Core
+import           Lisper.Eval
 
 env :: Env
 env = [("one", Number 1), ("ref", Atom "one"), ("t", Atom "two")]
+
+-- Evaluate string in empty env and return value
+run = snd . exec []
 
 -- Resolve tests
 resSimple :: TestTree
@@ -29,51 +32,50 @@ resBadRef = testCase "Should fail for missing references" $
 -- Primitives
 eq :: TestTree
 eq = testCase "Should have eq, car and cdr" $ do
-       exec "(eq (car '(1 2 3)) 1)" @?= Bool True
-       exec "(eq (cdr '(1 2 3)) '(2 3))" @?= Bool True
-       exec "(eq 1 2)" @?= Bool False
-       exec "(eq 1 '(1))" @?= Bool False
+    run "(eq (car '(1 2 3)) 1)" @?= Bool True
+    run "(eq (cdr '(1 2 3)) '(2 3))" @?= Bool True
+    run "(eq 1 2)" @?= Bool False
+    run "(eq 1 '(1))" @?= Bool False
 
 cons :: TestTree
 cons = testCase "Should make lists with cons" $
-       exec "(cons 1 '(2 3))" @?= List [Number 1, Number 2, Number 3]
-
+  run "(cons 1 '(2 3))" @?= List [Number 1, Number 2, Number 3]
 
 -- Special forms evaluations
 let_ :: TestTree
 let_ = testCase "Should evaluate let bindings" $ do
-    exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
-    exec "(let ((a (car '(1 2 3 4)))) a)" @?= Number 1
+    run "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+    run "(let ((a (car '(1 2 3 4)))) a)" @?= Number 1
 
 lambda :: TestTree
 lambda = testCase "Should define lambda expressions" $
-         case run "(lambda (x) (+ 1 x))" of
-             -- [todo] - Compare AST
-             ([], _) -> return ()
-             x -> assertString $ show x
+  case exec [] "(lambda (x) (+ 1 x))" of
+      -- [todo] - Compare AST
+      ([], _) -> return ()
+      x -> assertString $ show x
 
 lambdaExec :: TestTree
 lambdaExec = testCase "Should apply lambda expressions" $
-  exec "((lambda (x) (+ 1 x)) 41)" @?= Number 42
+  run "((lambda (x) (+ 1 x)) 41)" @?= Number 42
 
 define :: TestTree
 define = testCase "Should define named functions" $
-  case run "(define (add x) (+ 1 x))" of
+  case exec [] "(define (add x) (+ 1 x))" of
       ([("add", _)], _) -> return ()
       x -> assertString $ show x
 
 defineExec :: TestTree
 defineExec = testCase "Should apply named functions" $ do
-    exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
-    exec "((define (const) 42) (const))" @?= Number 42
+    run "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
+    run "((define (const) 42) (const))" @?= Number 42
 
 defineMulti :: TestTree
 defineMulti = testCase "Body of define may have multiple expressions" $
-  exec "(define (add x) (set! ret (+ 1 x)) ret) (add 41)" @?= Number 42
+  run "(define (add x) (set! ret (+ 1 x)) ret) (add 41)" @?= Number 42
 
 fact :: TestTree
 fact = testCase "Should do recursive functions" $
-  exec "(define (fact x) \
+  run "(define (fact x) \
        \    (if (= x 0) \
        \      1 \
        \      (* x (fact (- x 1))))) \
@@ -81,7 +83,7 @@ fact = testCase "Should do recursive functions" $
 
 curry' :: TestTree
 curry' = testCase "Should do simple currying" $
-  exec "(define (curry fn x)        \
+  run "(define (curry fn x)        \
        \  (lambda (y) (fn x y)))         \
        \(define (add x y) (+ x y))  \
        \(let ((add4 (curry add 4))) \
@@ -90,7 +92,7 @@ curry' = testCase "Should do simple currying" $
 -- [todo] - Fix failing merge sort test
 merge :: TestTree
 merge = testCase "Should do merge sort" $
-  exec "(define (merge-sort l gt?)\
+  run "(define (merge-sort l gt?)\
         \  (define (merge left right)\
         \    (cond\
         \     ((null? left)\

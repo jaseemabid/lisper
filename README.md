@@ -18,8 +18,7 @@ A tiny *WIP* Scheme implementation in Haskell.
 
 ## REPL
 
-Lisper has a rudimentary stateless shell. Commands cannot depend on previous
-commands. This needs to be fixed.
+Lisper has a simple shell.
 
     λ (cons 1 '(2 3 4))
     (1 2 3 4)

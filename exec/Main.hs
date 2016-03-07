@@ -12,10 +12,10 @@ main :: IO ()
 main = getArgs >>= parseArgs
 
 parseArgs :: [String] -> IO ()
-parseArgs ["-c", sexp] = (print . exec) sexp
+parseArgs ["-c", sexp] = print $ snd $ exec [] sexp
 parseArgs ["-h"] = usage
 parseArgs ["-v"] = version
-parseArgs [file] = readFile file >>= print . exec
+parseArgs [file] = readFile file >>= print . snd . exec []
 parseArgs _ = runRepl
 
 usage :: IO ()

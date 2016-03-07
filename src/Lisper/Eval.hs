@@ -118,13 +118,9 @@ progn env [x] = eval env x
 progn env (x:xs) = case eval env x of
                      (env', _) -> progn env' xs
 
--- Evaluate a script and return result and env
-run :: String -> (Env, LispVal)
-run = progn [] . readExpr
-
--- Evaluate a script and return result
-exec :: String -> LispVal
-exec = snd . run
+-- Evaluate a string and return result and env
+exec :: Env -> String -> (Env, LispVal)
+exec env = progn env . readExpr
 
 -- Helpers
 applyPrimitive :: String -> [LispVal] -> LispVal
