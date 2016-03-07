@@ -2,13 +2,17 @@ module Lisper.Repl (runRepl) where
 
 import           Lisper.Eval              (exec)
 import           System.Console.Haskeline
+import System.Directory (getHomeDirectory)
 
 -- [todo] - REPL must be stateful. *HIGH PRIORITY*
 -- [todo] - Improve input from stdin, Ie echo "(+ 1 1)" | lisper
 -- [todo] - If possible handle empty input from user with a no-op
 
 runRepl :: IO ()
-runRepl = runInputT settings loop
+runRepl = do
+    f <- fmap (++ "/.lisper_history") getHomeDirectory
+    let settings = defaultSettings { historyFile = Just f}
+    runInputT settings loop
   where
     loop :: MonadException m => InputT m ()
     loop = do
@@ -17,7 +21,3 @@ runRepl = runInputT settings loop
             Nothing  -> return ()
             Just "q" -> return ()
             Just line -> (outputStrLn . show . exec $ line) >> loop
-
-    -- [todo] - Move history file to ~/
-    settings :: MonadException m => Settings m
-    settings = defaultSettings { historyFile = Just ".lisper_history" }
