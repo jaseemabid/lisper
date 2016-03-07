@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PatternSynonyms   #-}
 
-module Lisper.Eval (eval, exec, progn, resolve, run) where
+module Lisper.Eval (eval, exec, progn, resolve) where
 
-import Lisper.Core
-import Lisper.Parser
-import Lisper.Primitives
-import Data.Maybe (fromJust)
-import Data.List (nub, (\\))
+import           Data.List         (nub, (\\))
+import           Data.Maybe        (fromJust)
+import           Lisper.Core
+import           Lisper.Parser
+import           Lisper.Primitives
 
 -- Evaluate an expression and return the new environment and the result of the
 -- evaluation. Env should mostly be unmodified unless the body is of the form of
@@ -31,15 +31,15 @@ eval env (Atom key) = eval env $ fromJust $ resolve env key
 
 -- Let special form
 eval env (Let args body) = (env, snd $ eval extended body)
-    where
-      -- Transforms a let args tuple list to env
-      argsToEnv :: LispVal -> Env
-      argsToEnv (List xs) = map
-        (\(List[Atom a, val]) -> (a, snd $ eval env val)) xs
-      argsToEnv _ = error "Second argument to let should be an alist"
+  where
+    -- Transforms a let args tuple list to env
+    argsToEnv :: LispVal -> Env
+    argsToEnv (List xs) = map
+      (\(List[Atom a, val]) -> (a, snd $ eval env val)) xs
+    argsToEnv _ = error "Second argument to let should be an alist"
 
-      extended :: Env
-      extended = argsToEnv args ++ env
+    extended :: Env
+    extended = argsToEnv args ++ env
 
 -- If special form
 eval env (If predicate conseq alt) =
@@ -56,27 +56,27 @@ eval env (Set var val) =
 
 -- Function definitions
 -- [todo] - Body of define can be multiple expressions
-eval env (Define name args body) =
-    case duplicates args of
-      [] -> (env', fn)
-      x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-    where
-      fn = Function env' (Just name) args body
-      env' = (name, fn) : env
+eval env (Define name args body) = case duplicates args of
+    [] -> (env', fn)
+    x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
+  where
+    fn = Function env' (Just name) args body
+    env' = (name, fn) : env
 
 -- Lambda definition
 eval env (Lambda args body) =
     case duplicates args of
       [] -> (env, fn)
       x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-  where fn = Function env Nothing args body
+  where
+    fn = Function env Nothing args body
 
 -- Function application with name
 eval env (List (Atom func : args)) =
     case lookup func env of
-      -- Function application with name
-      Just fn -> apply env fn args
-      Nothing -> (env, applyPrimitive func $ map (snd . eval env) args)
+        -- Function application with name
+        Just fn -> apply env fn args
+        Nothing -> (env, applyPrimitive func $ map (snd . eval env) args)
 
 -- Inline function invocation
 eval env (List (function : args)) = apply env fn args
@@ -116,7 +116,7 @@ progn :: Env -> [LispVal] -> (Env, LispVal)
 progn env [] = (env, NIL)
 progn env [x] = eval env x
 progn env (x:xs) = case eval env x of
-                     (env', _) -> progn env' xs
+    (env', _) -> progn env' xs
 
 -- Evaluate a string and return result and env
 exec :: Env -> String -> (Env, LispVal)
@@ -126,8 +126,8 @@ exec env = progn env . readExpr
 applyPrimitive :: String -> [LispVal] -> LispVal
 applyPrimitive func args =
     case lookup func primitives of
-      Just primitive -> primitive args
-      Nothing -> error $ "Undefined function " ++ show func
+        Just primitive -> primitive args
+        Nothing -> error $ "Undefined function " ++ show func
 
 -- Return duplicate items in the list
 duplicates :: [LispVal] -> [LispVal]
@@ -137,6 +137,6 @@ duplicates xs = xs \\ nub xs
 resolve :: Env -> String -> Maybe LispVal
 resolve env key =
     case lookup key env of
-      Just (Atom link) -> resolve env link
-      Just v -> Just v
-      Nothing -> Nothing
+        Just (Atom link) -> resolve env link
+        Just v -> Just v
+        Nothing -> Nothing

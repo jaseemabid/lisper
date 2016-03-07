@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PatternSynonyms   #-}
 
 -- Core data strctures and functions on them
 module Lisper.Core where
@@ -15,18 +15,18 @@ data LispVal = Atom String
 type Env = [(String, LispVal)]
 
 instance Show LispVal where
-  show (Atom x) = x
-  show (List x) =
-    case x of
-     Quote : _ -> "'" ++ unwords' (tail x)
-     _ -> "(" ++ unwords' x ++ ")"
-  show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
-  show (String s) = "\"" ++ s ++ "\""
-  show (Number n) = show n
-  show (Function _ (Just name) _ _) = " <λ " ++ name ++ " >"
-  show (Function _ Nothing _ _) = " <λ> "
-  show (Bool True) = "#t"
-  show (Bool False) = "#f"
+    show (Atom x) = x
+    show (List x) =
+      case x of
+          Quote : _ -> "'" ++ unwords' (tail x)
+          _ -> "(" ++ unwords' x ++ ")"
+    show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
+    show (String s) = "\"" ++ s ++ "\""
+    show (Number n) = show n
+    show (Function _ (Just name) _ _) = " <λ " ++ name ++ " >"
+    show (Function _ Nothing _ _) = " <λ> "
+    show (Bool True) = "#t"
+    show (Bool False) = "#f"
 
 instance Eq LispVal where
     (==) (Atom a) (Atom b) = a == b
