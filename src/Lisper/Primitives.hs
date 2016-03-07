@@ -22,6 +22,9 @@ primitives = [("eq", eq),
               ("quote", head),
               ("rem", numericBinop rem)]
 
+-- [todo] - Add a prelude.lisp file which can have pure lisp definitions
+-- [todo] - Define in pure lisp: progn, cond
+
 -- Lisp primitives
 eq :: [LispVal] -> LispVal
 eq (a : b : []) = Bool $ (a == b)

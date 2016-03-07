@@ -87,6 +87,7 @@ curry' = testCase "Should do simple currying" $
        \(let ((add4 (curry add 4))) \
        \  (add4 4))" @?= Number 8
 
+-- [todo] - Fix failing merge sort test
 merge :: TestTree
 merge = testCase "Should do merge sort" $
   exec "(define (merge-sort l gt?)\

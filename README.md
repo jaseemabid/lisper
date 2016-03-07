@@ -14,22 +14,26 @@ A tiny *WIP* Scheme implementation in Haskell.
     $ git clone https://github.com/jaseemabid/lisper && cd lisper
     $ stack build
     $ stack test
+    $ stack install
 
-## Evaluating examples with REPL
+## REPL
 
-Top level function exec can be used from ghci
+Lisper has a rudimentary stateless shell. Commands cannot depend on previous
+commands. This needs to be fixed.
 
-    $ stack repl
-    λ exec "(+ 1 2)"
-    3
-    λ
-
-A rudimentary lisper shell that barely works is also available.
-
-    $ stack exec -- lisper -i
     λ (cons 1 '(2 3 4))
     (1 2 3 4)
-    λ
+    λ (define (add a b) (+ a b))
+    <λ add >
+    λ (define (add a b) (+ a b)) (add 10 20)
+    30
+
+## Contributing
+
+Install command line issue manager
+[https://github.com/nhmood/watson-ruby](Watson)
+
+    $ watson
 
 ## License
 

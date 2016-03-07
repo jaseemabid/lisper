@@ -55,6 +55,7 @@ eval env (Set var val) =
     in ((var, real) : env, real)
 
 -- Function definitions
+-- [todo] - Body of define can be multiple expressions
 eval env (Define name args body) =
     case duplicates args of
       [] -> (env', fn)
@@ -110,6 +111,7 @@ apply env (Function closure _name formal body) args =
 apply _env fn _args = error $ "Apply needs a function, called with " ++ show fn
 
 -- Progn, evaluate a list of expressions sequentially
+-- [fix] - Progn must stop at the first failure and report it
 progn :: Env -> [LispVal] -> (Env, LispVal)
 progn env [] = (env, NIL)
 progn env [x] = eval env x
