@@ -67,6 +67,10 @@ defineExec = testCase "Should apply named functions" $ do
     exec "(define (add x) (+ 10 x)) (add 32)" @?= Number 42
     exec "((define (const) 42) (const))" @?= Number 42
 
+defineMulti :: TestTree
+defineMulti = testCase "Body of define may have multiple expressions" $
+  exec "(define (add x) (set! ret (+ 1 x)) ret) (add 41)" @?= Number 42
+
 fact :: TestTree
 fact = testCase "Should do recursive functions" $
   exec "(define (fact x) \
@@ -119,8 +123,8 @@ res :: TestTree
 res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
 
 special :: TestTree
-special = testGroup "Special forms" [let_, lambda, lambdaExec, define, defineExec,
-                                     fact]
+special = testGroup "Special forms"
+  [let_, lambda, lambdaExec, define, defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
