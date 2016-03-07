@@ -41,8 +41,9 @@ cons = testCase "Should make lists with cons" $
 
 -- Special forms evaluations
 let_ :: TestTree
-let_ = testCase "Should evaluate let bindings" $
-       exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+let_ = testCase "Should evaluate let bindings" $ do
+    exec "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
+    exec "(let ((a (car '(1 2 3 4)))) a)" @?= Number 1
 
 lambda :: TestTree
 lambda = testCase "Should define lambda expressions" $
@@ -74,6 +75,14 @@ fact = testCase "Should do recursive functions" $
        \      (* x (fact (- x 1))))) \
        \ (fact 5)" @?= Number 120
 
+curry' :: TestTree
+curry' = testCase "Should do simple currying" $
+  exec "(define (curry fn x)        \
+       \  (lambda (y) (fn x y)))         \
+       \(define (add x y) (+ x y))  \
+       \(let ((add4 (curry add 4))) \
+       \  (add4 4))" @?= Number 8
+
 primitives :: TestTree
 primitives = testGroup "Primitives" [eq, cons]
 
@@ -84,8 +93,11 @@ special :: TestTree
 special = testGroup "Special forms" [let_, lambda, lambdaExec, define, defineExec,
                                      fact]
 
+sample :: TestTree
+sample = testGroup "Sample Programs" [curry']
+
 tests :: TestTree
-tests = testGroup "Unit Tests" [primitives, res, special]
+tests = testGroup "Unit Tests" [primitives, res, special, sample]
 
 main :: IO ()
 main = defaultMain tests
