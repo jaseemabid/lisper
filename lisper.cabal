@@ -27,8 +27,14 @@ library
                        Lisper.Util
   -- other-modules:
   other-extensions:    OverloadedStrings, PatternSynonyms
-  build-depends:       base, directory, parsec, haskeline
-  ghc-options:         -Wall
+  build-depends:       HUnit,
+                       base,
+                       directory,
+                       parsec,
+                       haskeline,
+                       tasty,
+                       tasty-hunit
+  ghc-options:         -Wall -fwarn-tabs
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -40,14 +46,15 @@ executable lisper
   hs-source-dirs:      exec
 
 test-suite lisper-test
-  type:              exitcode-stdio-1.0
-  default-language:  Haskell2010
-  hs-source-dirs:    test
-  main-is:           Test.hs
-  build-depends:     base,
-                     lisper,
-                     parsec,
-                     haskeline,
-                     HUnit,
-                     tasty,
-                     tasty-hunit
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  hs-source-dirs:      test
+  main-is:             Test.hs
+  build-depends:       HUnit,
+                       base,
+                       directory,
+                       lisper,
+                       parsec,
+                       haskeline,
+                       tasty,
+                       tasty-hunit
