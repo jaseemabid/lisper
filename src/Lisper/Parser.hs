@@ -5,7 +5,6 @@
 
 module Lisper.Parser (parser, readExpr) where
 
-import           Control.Monad                 (liftM)
 import           Lisper.Core
 import           Text.ParserCombinators.Parsec
 
@@ -35,7 +34,8 @@ parseAtom = do
         _    -> Atom atom
 
 parseList :: Parser LispVal
-parseList = liftM List $ sepEndBy parseExpr spaces
+parseList = List <$> sepEndBy parseExpr spaces
+
 
 parseDottedList :: Parser LispVal
 parseDottedList = do

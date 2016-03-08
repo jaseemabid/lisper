@@ -23,8 +23,8 @@ instance Show LispVal where
     show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String s) = "\"" ++ s ++ "\""
     show (Number n) = show n
-    show (Function _ (Just name) _ _) = " <λ " ++ name ++ " >"
-    show (Function _ Nothing _ _) = " <λ> "
+    show (Function _ (Just name) _ _) = "<λ " ++ name ++ " >"
+    show (Function _ Nothing _ _) = "<λ>"
     show (Bool True) = "#t"
     show (Bool False) = "#f"
 
@@ -35,7 +35,7 @@ instance Eq LispVal where
     (==) (String a) (String b) = a == b
     (==) (Number a) (Number b) = a == b
     (==) (Bool a) (Bool b) = a == b
-    (==) (Function _ _ _ _) (Function _ _ _ _) = False
+    (==) Function{} Function{} = False
     (==) _a _b = False
 
 -- Patterns for pattern matching ;)
@@ -48,7 +48,7 @@ pattern Lambda args body = List [Atom "lambda", List args, body]
 
 pattern Let args body = List [Atom "let", args, body]
 pattern Quote = Atom "quote"
-pattern Set var val = List [Atom "set!", (Atom var), val]
+pattern Set var val = List [Atom "set!", Atom var, val]
 
 -- Helpers
 unwords' :: [LispVal] -> String

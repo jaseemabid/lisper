@@ -1,5 +1,5 @@
 module Lisper.Primitives (primitives) where
-import Lisper.Core
+import           Lisper.Core
 
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
@@ -24,10 +24,11 @@ primitives = [("eq", eq),
 
 -- [todo] - Add a prelude.lisp file which can have pure lisp definitions
 -- [todo] - Define in pure lisp: progn, cond
+-- Cond spec http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Conditionals.html
 
 -- Lisp primitives
 eq :: [LispVal] -> LispVal
-eq (a : b : []) = Bool $ (a == b)
+eq [a, b] = Bool $ a == b
 eq x = error $ "eq expected 2 arguments" ++ show x
 
 car :: [LispVal] -> LispVal
