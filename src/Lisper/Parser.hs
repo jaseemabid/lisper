@@ -18,6 +18,7 @@ parseString = do
     _ <- char '"'
     return $ String x
 
+-- [fix] - Parse negative numbers. Sort test fails with neg numbers
 parseNumber :: Parser LispVal
 parseNumber = do
     d <- many1 digit

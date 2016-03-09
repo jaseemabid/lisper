@@ -14,8 +14,8 @@ run = snd . exec []
 
 -- Resolve tests
 resSimple :: TestTree
-resSimple = testCase "Should get variables"  $
-            resolve env "one" @?= Just (Number 1)
+resSimple = testCase "Should get variables" $
+  resolve env "one" @?= Just (Number 1)
 
 resRef :: TestTree
 resRef = testCase "Should get references" $
@@ -42,10 +42,16 @@ cons = testCase "Should make lists with cons" $
   run "(cons 1 '(2 3))" @?= List [Number 1, Number 2, Number 3]
 
 -- Special forms evaluations
+quote :: TestTree
+quote = testCase "(quote a) should be equivalent to 'a " $ do
+    run "(quote a)" @?= run "'a"
+    run "(quote (1 2 3))" @?= run "'(1 2 3)"
+
 let_ :: TestTree
 let_ = testCase "Should evaluate let bindings" $ do
     run "(let ((a 12) (b 42)) (+ a b))" @?= Number 54
     run "(let ((a (car '(1 2 3 4)))) a)" @?= Number 1
+    run "(let ((a '(1))) a)" @?= List [Number 1]
 
 lambda :: TestTree
 lambda = testCase "Should define lambda expressions" $
@@ -92,32 +98,37 @@ curry' = testCase "Should do simple currying" $
 -- [todo] - Fix failing merge sort test
 merge :: TestTree
 merge = testCase "Should do merge sort" $
-  run "(define (merge-sort l gt?)\
-        \  (define (merge left right)\
-        \    (cond\
-        \     ((null? left)\
-        \      right)\
-        \     ((null? right)\
-        \      left)\
-        \     ((gt? (car left) (car right))\
-        \      (cons (car right)\
-        \            (merge left (cdr right))))\
-        \     (else\
-        \      (cons (car left)\
-        \            (merge (cdr left) right)))))\
-        \  \
-        \  (define (take l n)\
-        \    (if (zero? n)\
-        \      (list)\
-        \      (cons (car l)\
-        \            (take (cdr l) (- n 1)))))\
-        \  \
-        \  (let ((half (quotient (length l) 2)))\
-        \    (if (zero? half)\
-        \      l\
-        \      (merge (merge-sort (take      l half) gt?)\
-        \             (merge-sort (list-tail l half) gt?)))))\
-        \(merge-sort '(1 3 5 7 9 8 6 4 2) >)" @?= List []
+  run "(define (even l)                                            \
+      \  (if (null? l)                                             \
+      \      '()                                                   \
+      \    (if (null? (cdr l))                                     \
+      \        '()                                                 \
+      \      (cons (car (cdr l)) (even (cdr (cdr l)))))))          \
+      \                                                            \
+      \(define (odd l)                                             \
+      \  (if (null? l)                                             \
+      \      '()                                                   \
+      \    (if (null? (cdr l))                                     \
+      \        (list (car l))                                      \
+      \      (cons (car l) (odd (cdr (cdr l)))))))                 \
+      \                                                            \
+      \(define (merge left right)                                  \
+      \  (cond ((null? left) right)                                \
+      \        ((null? right) left)                                \
+      \        ((> (car left) (car right))                         \
+      \         (cons (car right) (merge left (cdr right))))       \
+      \        (else (cons (car left) (merge (cdr left) right))))) \
+      \                                                            \
+      \(define (merge-sort l)                                      \
+      \  (if (null? l)                                             \
+      \      l                                                     \
+      \    (if (null? (cdr l))                                     \
+      \        l                                                   \
+      \      (merge (merge-sort (odd l))                           \
+      \             (merge-sort (even l))))))                      \
+      \                                                            \
+      \(merge-sort '(9 1 6 8))" @?=
+  List [Number 1, Number 6, Number 8, Number 9]
 
 primitives :: TestTree
 primitives = testGroup "Primitives" [eq, cons]
@@ -127,7 +138,7 @@ res = testGroup "Resolve" [resSimple, resRef, resFail, resBadRef]
 
 special :: TestTree
 special = testGroup "Special forms"
-  [let_, lambda, lambdaExec, define, defineExec, defineMulti, fact]
+  [quote, let_, lambda, lambdaExec, define, defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]

@@ -4,7 +4,7 @@
 module Lisper.Eval (eval, exec, progn, resolve) where
 
 import           Data.List         (nub, (\\))
-import           Data.Maybe        (fromJust)
+import           Data.Maybe        (fromMaybe)
 import           Lisper.Core
 import           Lisper.Parser
 import           Lisper.Primitives
@@ -26,11 +26,13 @@ eval env val@(DottedList _ _) = (env, val)
 
 eval env (List [Quote, val]) = (env, val)
 
--- Variable lookup, forcing an evaluation
-eval env (Atom key) = eval env $ fromJust $ resolve env key
+-- Variable lookup
+eval env (Atom key) = (env, fromMaybe
+  (error $ "Cannot find " ++ show key ++ " in " ++ show env)
+  (resolve env key))
 
 -- Let special form
-eval env (Let args body) = (env, snd $ eval extended body)
+eval env (Let args body) = (env, snd $ progn extended body)
   where
     -- Transforms a let args tuple list to env
     argsToEnv :: LispVal -> Env
@@ -40,6 +42,20 @@ eval env (Let args body) = (env, snd $ eval extended body)
 
     extended :: Env
     extended = argsToEnv args ++ env
+
+eval env (Cond body) = (env, snd $ eval env v)
+  where
+    -- [todo] - Verify default return value of cond
+    List [_p, v] = head $ filter notFalse body
+
+    -- Find non false, non NIL predicate
+    notFalse (List [predicate, _value]) = res /= Bool False && res /= NIL
+      where
+        res = case predicate of
+            Atom "else" -> Bool True
+            _ -> snd $ eval env predicate
+
+    notFalse _ = False
 
 -- If special form
 eval env (If predicate conseq alt) =
@@ -55,7 +71,6 @@ eval env (Set var val) =
     in ((var, real) : env, real)
 
 -- Function definitions
--- [todo] - Body of define can be multiple expressions
 eval env (Define name args body) = case duplicates args of
     [] -> (env', fn)
     x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
@@ -97,18 +112,23 @@ eval env (List (function : args)) = apply env fn args
 -- scoping.
 apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
 apply env (Function closure _name formal body) args =
-    (env, snd $ eval closure $ Let alist body)
-
+    (env, snd $ progn extended body)
   where
+
     -- We are strict! Zipper evaluates arguments before passing to functions
-    zipper :: LispVal -> LispVal -> LispVal
-    zipper x (Atom y) = List [x, fromJust $ resolve env y]
-    zipper x value = List [x, snd $ eval env value]
+    zipper :: LispVal -> LispVal -> (String, LispVal)
+    zipper (Atom var) val = (var, snd $ eval env val)
+    zipper a b = error $ "Second argument to let should be an alist\n"
+      ++ show a  ++ " " ++ show b
 
-    alist :: LispVal
-    alist = List $ zipWith zipper formal args
+    local :: Env
+    local = zipWith zipper formal args
 
-apply _env fn _args = error $ "Apply needs a function, called with " ++ show fn
+    extended :: Env
+    extended = closure ++ local ++ env
+
+apply env fn args = error
+  $ "Function Application Error. Fn:" ++ show fn ++ "\n " ++ show env ++ "args: " ++ show args
 
 -- Progn, evaluate a list of expressions sequentially
 -- [fix] - Progn must stop at the first failure and report it

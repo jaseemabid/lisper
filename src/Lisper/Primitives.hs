@@ -4,9 +4,12 @@ import           Lisper.Core
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [LispVal] -> LispVal)]
 primitives = [("eq", eq),
+              ("null?", nullq),
               ("car", car),
               ("cdr", cdr),
               ("cons", cons),
+              ("length", length'),
+              ("list", list'),
               ("*", numericBinop (*)),
               ("+", numericBinop (+)),
               ("-", numericBinop (-)),
@@ -17,19 +20,25 @@ primitives = [("eq", eq),
               ("=", numBoolBinop (==)),
               (">", numBoolBinop (>)),
               (">=", numBoolBinop (>=)),
-              ("mod", numericBinop mod),
+              -- [verify] Get quotient from stdlib
+              ("quotient", numericBinop mod),
               ("quot", numericBinop quot),
               ("quote", head),
               ("rem", numericBinop rem)]
 
--- [todo] - Add a prelude.lisp file which can have pure lisp definitions
--- [todo] - Define in pure lisp: progn, cond
+-- [todo] - Add a prelude file which can have pure lisp definitions
+-- [todo] - Define stdlib in pure lisp when possible
+-- [todo] - Add haskell primitives to default env and remove applyPrimitive
 -- Cond spec http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Conditionals.html
 
 -- Lisp primitives
 eq :: [LispVal] -> LispVal
 eq [a, b] = Bool $ a == b
 eq x = error $ "eq expected 2 arguments" ++ show x
+
+nullq :: [LispVal] -> LispVal
+nullq [a] = Bool $ a == List []
+nullq x = error $ "null? expected 2 arguments" ++ show x
 
 car :: [LispVal] -> LispVal
 car [List (t : _)] = t
@@ -42,6 +51,13 @@ cdr x = error $ "cdr expected a single list, got " ++ show x
 cons :: [LispVal] -> LispVal
 cons (h : [List t]) = List (h:t)
 cons x = error $ "cons expected a value and a list, got " ++ show x
+
+length' :: [LispVal] -> LispVal
+length' [List x] = Number $ toInteger $ length x
+length' x = error $ "length expected a single list, got " ++ show x
+
+list' :: [LispVal] -> LispVal
+list' l = List $ l
 
 -- [todo] Add input type to error message
 -- [todo] Possibly auto generate unpack*

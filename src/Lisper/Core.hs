@@ -6,7 +6,7 @@ module Lisper.Core where
 
 data LispVal = Atom String
              | List [LispVal]
-             | Function Env (Maybe String) [LispVal] LispVal
+             | Function Env (Maybe String) [LispVal] [LispVal]
              | DottedList [LispVal] LispVal
              | Number Integer
              | String String
@@ -42,11 +42,12 @@ instance Eq LispVal where
 pattern NIL = List []
 
 -- Special forms
+pattern Define name args body =
+    List (Atom "define" : List (Atom name : args) : body)
 pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
-pattern Define name args body = List [Atom "define", List (Atom name : args), body]
-pattern Lambda args body = List [Atom "lambda", List args, body]
-
-pattern Let args body = List [Atom "let", args, body]
+pattern Lambda args body = List (Atom "lambda" : List args: body)
+pattern Let args body = List (Atom "let" : args : body)
+pattern Cond body = List (Atom "cond": body)
 pattern Quote = Atom "quote"
 pattern Set var val = List [Atom "set!", Atom var, val]
 
