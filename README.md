@@ -34,6 +34,8 @@ Install command line issue manager
 
     $ watson
 
+See reported issues as well as Issues.txt
+
 ## License
 
 MIT licensed.
