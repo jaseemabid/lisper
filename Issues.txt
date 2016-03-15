@@ -1,4 +1,4 @@
-* Design [0/3]
+* Design [0/4]
 
 - [ ] Type of the expression before and after eval must not be same. I cannot
   prevent double evaluations at compile time. This is trickier than it sounds.
