@@ -39,16 +39,30 @@ instance Eq LispVal where
     (==) _a _b = False
 
 -- Patterns for pattern matching ;)
+pattern NIL :: LispVal
 pattern NIL = List []
 
 -- Special forms
+pattern Define :: String -> [LispVal] -> [LispVal] -> LispVal
 pattern Define name args body =
     List (Atom "define" : List (Atom name : args) : body)
+
+pattern If :: LispVal -> LispVal -> LispVal -> LispVal
 pattern If predicate conseq alt = List [Atom "if", predicate, conseq, alt]
+
+pattern Lambda :: [LispVal] -> [LispVal] -> LispVal
 pattern Lambda args body = List (Atom "lambda" : List args: body)
+
+pattern Let :: LispVal -> [LispVal] -> LispVal
 pattern Let args body = List (Atom "let" : args : body)
+
+pattern Cond :: [LispVal] -> LispVal
 pattern Cond body = List (Atom "cond": body)
+
+pattern Quote :: LispVal
 pattern Quote = Atom "quote"
+
+pattern Set :: String -> LispVal -> LispVal
 pattern Set var val = List [Atom "set!", Atom var, val]
 
 -- Helpers
