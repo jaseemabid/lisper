@@ -10,7 +10,7 @@ maintainer:          jaseemabid@gmail.com
 -- copyright:
 category:            Language
 build-type:          Simple
-extra-source-files:  README.org
+extra-source-files:  README.md
 cabal-version:       >=1.18
 
 source-repository head
