@@ -57,13 +57,13 @@ length' [List x] = Number $ toInteger $ length x
 length' x = error $ "length expected a single list, got " ++ show x
 
 list' :: [LispVal] -> LispVal
-list' l = List $ l
+list' = List
 
 -- [todo] Add input type to error message
 -- [todo] Possibly auto generate unpack*
 unpackNum :: LispVal -> Integer
 unpackNum (Number n) = n
-unpackNum _ =  error "Unable to convert to number"
+unpackNum x = error $ "Expected number; got " ++ show x ++ " instead"
 
 -- `numericBinop` takes a primitive Haskell function and wraps it with code to
 -- unpack an argument list, apply the function to it, and wrap the result up in

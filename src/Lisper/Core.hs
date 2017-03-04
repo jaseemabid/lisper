@@ -4,6 +4,7 @@
 -- Core data strctures and functions on them
 module Lisper.Core where
 
+-- | [TODO] - Replace `LispVal` with `LispVal a`
 data LispVal = Atom String
              | List [LispVal]
              | Function Env (Maybe String) [LispVal] [LispVal]

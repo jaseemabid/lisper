@@ -1,7 +1,12 @@
+{-# LANGUAGE LambdaCase        #-}
+
 module Lisper.Repl (runRepl) where
 
+import           Control.Monad.State
 import           Lisper.Core              (Env)
-import           Lisper.Eval              (exec)
+import           Lisper.Parser
+import           Lisper.Eval
+
 import           System.Console.Haskeline
 import           System.Directory         (getHomeDirectory)
 
@@ -16,12 +21,13 @@ runRepl = do
     runInputT settings $ loop []
   where
     loop :: MonadException m => Env -> InputT m ()
-    loop env = do
-        input <- getInputLine "λ "
-        case input of
+    loop env =
+        getInputLine "λ " >>= \case
             Nothing  -> return ()
             Just "q" -> return ()
             Just line -> do
-                let (env', result) = exec env line
+                -- [TODO] - Move this entire computation into a State Monad
+                -- [TODO] - Pretty print avoiding `Left` and `Right`
+                let (result, env') = runState (progn $ readExpr line) env
                 outputStrLn $ show result
                 loop env'

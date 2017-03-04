@@ -1,162 +1,209 @@
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms   #-}
 
-module Lisper.Eval (eval, exec, progn, resolve) where
+module Lisper.Eval where
 
-import           Data.List         (nub, (\\))
-import           Data.Maybe        (fromMaybe)
-import           Lisper.Core
-import           Lisper.Parser
-import           Lisper.Primitives
+import Control.Monad.State.Lazy
+import Data.Either
+import Data.List (nub, (\\))
 
--- Evaluate an expression and return the new environment and the result of the
--- evaluation. Env should mostly be unmodified unless the body is of the form of
--- a `define` or a `set`. A `set` or `define` should return an environment with
--- a new key, while a let expression should return the same env unmodified.
+import Lisper.Core
+import Lisper.Parser
+import Lisper.Primitives
 
-eval :: Env -> LispVal -> (Env, LispVal)
+-- | Evaluate an expression and return the result or error if any.
+--
+-- The environment maybe updated by specifc commands like `set!`, and is handled
+-- by the `State` monad. Env should be mostly left unmodified unless the body is
+-- of the form of a `define` or a `set`.
+
+-- [TODO] - Eventually replace `String` with a Stacktrace or something.
+-- [TODO] - Clean up this API with a monad transformer
+eval :: LispVal -> State Env (Either String LispVal)
 
 -- Eval on primitive values is no-op
-eval env val@(List []) = (env, val)
-eval env val@(String _) = (env, val)
-eval env val@(Number _) = (env, val)
-eval env val@(Bool _) = (env, val)
-eval env val@Function{} = (env, val)
-eval env val@(DottedList _ _) = (env, val)
+eval val@(List []) = return $ Right val
+eval val@(String _) = return $ Right val
+eval val@(Number _) = return $ Right val
+eval val@(Bool _) = return $ Right val
+eval val@Function{} = return $ Right val
+eval val@(DottedList _ _) = return $ Right val
 
-eval env (List [Quote, val]) = (env, val)
+eval (List [Quote, val]) = return $ Right val
 
 -- Variable lookup
-eval env (Atom key) = (env, fromMaybe
-  (error $ "Cannot find " ++ show key ++ " in " ++ show env)
-  (resolve env key))
+eval (Atom key) = do
+    env <- get
+    case resolve key env of
+      Just val -> return $ Right val
+      Nothing -> return $ Left $ "Undefined variable " ++ show key
 
 -- Let special form
-eval env (Let args body) = (env, snd $ progn extended body)
-  where
-    -- Transforms a let args tuple list to env
-    argsToEnv :: LispVal -> Env
-    argsToEnv (List xs) = map
-      (\(List[Atom a, val]) -> (a, snd $ eval env val)) xs
-    argsToEnv _ = error "Second argument to let should be an alist"
+eval (Let args body) = do
+    env <- get
+    Right env' <- alistToEnv args
+    return $ evalState (progn body) (env' ++ env)
 
-    extended :: Env
-    extended = argsToEnv args ++ env
-
-eval env (Cond body) = (env, snd $ eval env v)
-  where
-    -- [todo] - Verify default return value of cond
-    List [_p, v] = head $ filter notFalse body
-
-    -- Find non false, non NIL predicate
-    notFalse (List [predicate, _value]) = res /= Bool False && res /= NIL
-      where
-        res = case predicate of
-            Atom "else" -> Bool True
-            _ -> snd $ eval env predicate
-
-    notFalse _ = False
+-- [TODO] - Verify default value of `cond` if no branches match
+-- Return `NIL if no branches match
+eval (Cond body) =
+    case body of
+      (List [Atom "else", value]: _xs) -> eval value
+      (List [predicate, value]: xs) ->
+          eval predicate >>= \case
+              Right NIL -> eval (Cond xs)
+              Right (Bool False) -> eval (Cond xs)
+              Right _ -> eval value
+              Left err -> return $ Left err
+      [] -> return $ Right NIL
+      err -> return $ Left $ "Syntax error: expected alist; got " ++ show err ++ " instead"
 
 -- If special form
-eval env (If predicate conseq alt) =
-    let f NIL = eval env alt
-        f (Bool True) = eval env conseq
-        f (Bool False) = eval env alt
-        f _ = error "If needs a Boolean predicate"
-    in f $ snd $ eval env predicate
+eval (If predicate conseq alt) = do
+    Right result <- eval predicate
+    case result of
+        Bool True -> eval conseq
+        Bool False -> eval alt
+        NIL -> eval alt
+        _ -> return $ Left "If needs a Boolean predicate"
 
 -- Set special form
-eval env (Set var val) =
-    let real = snd $ eval env val
-    in ((var, real) : env, real)
+eval (Set var val) = do
+    Right result <- eval val
+    modify $ \env -> (var, result) : env
+    return $ Right result
 
 -- Function definitions
-eval env (Define name args body) = case duplicates args of
-    [] -> (env', fn)
-    x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-  where
-    fn = Function env' (Just name) args body
-    env' = (name, fn) : env
+eval (Define name args body) = do
+    env <- get
+    case duplicates args of
+      [] -> do
+          put env'
+          return $ Right fn
+        where
+          fn = Function env' (Just name) args body
+          env' = (name, fn) : env
+      x -> return $ Left err
+        where
+          err = "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Lambda definition
-eval env (Lambda args body) =
+eval (Lambda args body) = do
+    env <- get
     case duplicates args of
-      [] -> (env, fn)
-      x -> error $ "Duplicate argument " ++ show x ++ " in function definition"
-  where
-    fn = Function env Nothing args body
+      [] -> return $ Right fn
+        where
+          fn = Function env Nothing args body
+      x -> return $ Left err
+        where
+          err = "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Function application with name
-eval env (List (Atom func : args)) =
+eval (List (Atom func : args)) = do
+    env <- get
     case lookup func env of
         -- Function application with name
-        Just fn -> apply env fn args
-        Nothing -> (env, applyPrimitive func $ map (snd . eval env) args)
+        Just fn -> apply fn args
+        Nothing -> do
+            -- [TODO] - Rewrite this. This is only the first version I could
+            -- manage to get compiled after a few hours of struggles with mtl
+            -- errors.
+            args' <- mapM (\lv -> return $ evalState (eval lv) env) args
+            -- [TODO] - `rights` is probably eating errors silently
+            return $ Right $ applyPrimitive func (rights args')
 
 -- Inline function invocation
-eval env (List (function : args)) = apply env fn args
-  where fn = snd $ eval env function
+eval (List (function : args)) = do
+    Right fn <- eval function
+    apply fn args
 
--- Apply a function with a list of arguments
-
+-- | Apply a function with a list of arguments
+--
 -- The `alist` is constructed in such a way that all bindings refer to concrete
 -- values, rather than other references.
 --
 -- The alist of the form `((x a))`, rather than `((x 42))` will cause `a` to be
--- looked up in the function closure, rather than the caller's environment.
--- This is prevented by `resolving` the value of each argument to a value other
--- than an atom before zipping with the formal arguments.
+-- looked up in the function closure, rather than the caller's environment. This
+-- is prevented by `resolving` the value of each argument to a value other than
+-- an atom before zipping with the formal arguments.
 --
 -- This gives the added benefit that the caller's environment is not needed
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
-apply :: Env -> LispVal -> [LispVal] -> (Env, LispVal)
-apply env (Function closure _name formal body) args =
-    (env, snd $ progn extended body)
+apply :: LispVal -> [LispVal] -> State Env (Either String LispVal)
+apply (Function closure _name formal body) args = do
+    env <- get
+    local' <- zipWithM zipper formal args
+    -- [TODO] - `rights` is probably eating errors silently
+    let local = rights local' :: Env
+    let extended = closure ++ local ++ env
+
+    return $ evalState (progn body) extended
+
   where
-
     -- We are strict! Zipper evaluates arguments before passing to functions
-    zipper :: LispVal -> LispVal -> (String, LispVal)
-    zipper (Atom var) val = (var, snd $ eval env val)
-    zipper a b = error $ "Second argument to let should be an alist\n"
-      ++ show a  ++ " " ++ show b
+    zipper :: LispVal -> LispVal -> State Env (Either String (String, LispVal))
+    zipper (Atom var) val = do
+        Right result <- eval val
+        return $ Right (var, result)
+    zipper a b = return $ Left $ "Malformed function arguments" ++ show a  ++ " " ++ show b
 
-    local :: Env
-    local = zipWith zipper formal args
+apply fn _args = return $ Left $ "Function Application Error. Fn: " ++ show fn
 
-    extended :: Env
-    extended = closure ++ local ++ env
+-- | Evaluate a list of expressions sequentially; and return the result of last
+--
+-- Progn needs to stop at the first failure and hence the intermediatary results
+-- are forced with a `seq`. I'm not sure if this is the right way to do things,
+-- but works for now.
+progn :: [LispVal] -> State Env (Either String LispVal)
+progn [] = return $ Right NIL
+progn [x] = eval x
+progn (x:xs) = eval x >>= \case
+    Right lv -> seq lv $ progn xs
+    err -> return err
 
-apply env fn args = error
-  $ "Function Application Error. Fn:" ++ show fn ++ "\n " ++ show env ++ "args: " ++ show args
+-- | Evaluate a string and return result
+--
+-- This method is stateless and subsequent applications wont behave like a repl.
+exec :: String -> Either String LispVal
+exec str = evalState (progn $ readExpr str) []
 
--- Progn, evaluate a list of expressions sequentially
--- [fix] - Progn must stop at the first failure and report it
-progn :: Env -> [LispVal] -> (Env, LispVal)
-progn env [] = (env, NIL)
-progn env [x] = eval env x
-progn env (x:xs) = case eval env x of
-    (env', _) -> progn env' xs
-
--- Evaluate a string and return result and env
-exec :: Env -> String -> (Env, LispVal)
-exec env = progn env . readExpr
+-- | Evaluate a string and return result, along with new env
+--
+-- This method is stateless and subsequent applications wont behave like a repl.
+run :: String -> (Either String LispVal, Env)
+run str = runState (progn $ readExpr str) []
 
 -- Helpers
 applyPrimitive :: String -> [LispVal] -> LispVal
 applyPrimitive func args =
     case lookup func primitives of
         Just primitive -> primitive args
-        Nothing -> error $ "Undefined function " ++ show func
+        Nothing -> error $ "Undefined primitive function " ++ show func
 
--- Return duplicate items in the list
+-- | Return duplicate items in the list
+--
+-- >>> duplicates [1, 2, 3, 4, 1]
+-- [1]
 duplicates :: [LispVal] -> [LispVal]
 duplicates xs = xs \\ nub xs
 
--- Resolves a variable reference to a concrete value by walking up the link
-resolve :: Env -> String -> Maybe LispVal
-resolve env key =
-    case lookup key env of
-        Just (Atom link) -> resolve env link
-        Just v -> Just v
-        Nothing -> Nothing
+-- | Transforms a let args tuple list to env
+alistToEnv :: LispVal -> State Env (Either String Env)
+alistToEnv (List xs) = do
+    env <- get
+    let (Right sets) = mapM trans xs
+    let (Right _lv, env') = runState (progn sets) env
+    return $ Right env'
+  where
+     -- | Transform an alist of the form `(a 1)` to a `(set! a 1)` expression
+     trans :: LispVal -> Either String LispVal
+     trans (List[Atom a, val']) = Right $ List[Atom "set!", Atom a, val']
+     trans _ = Left "Malformed alist"
+
+alistToEnv _ = return $ Left "Second argument to let should be an alist"
+
+-- | Resolves a variable reference
+resolve :: String -> Env -> Maybe LispVal
+resolve = lookup

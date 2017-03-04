@@ -1,20 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
+ {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
-import           Lisper.Eval        (exec)
-import           Lisper.Repl        (runRepl)
-import           System.Environment (getArgs)
+import Lisper.Eval         (exec)
+import Lisper.Repl         (runRepl)
+import System.Environment  (getArgs)
 
 -- Main
 main :: IO ()
 main = getArgs >>= parseArgs
 
 parseArgs :: [String] -> IO ()
-parseArgs ["-c", sexp] = print $ snd $ exec [] sexp
+parseArgs ["-c", sexp] = print $ exec sexp
 parseArgs ["-h"] = usage
 parseArgs ["-v"] = version
-parseArgs [file] = readFile file >>= print . snd . exec []
+parseArgs [file] = readFile file >>= \sexp -> print $ exec sexp
 parseArgs _ = runRepl
 
 usage :: IO ()

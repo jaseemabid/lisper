@@ -21,7 +21,7 @@
 
 - [ ] Malformed define, let etc give useless error message. Improve eval
 - [ ] Parse negative numbers
-- [ ]
+- [ ] Fail for undefined variables, not silent None
 
 * Enhancements [0/2]
 
