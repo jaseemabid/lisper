@@ -7,13 +7,13 @@ implementation in Haskell.
 ## Getting started
 
     $ brew install haskell-stack
+    $ gem install watson-ruby (optional)
     $ git clone https://github.com/jaseemabid/lisper && cd lisper
     $ stack build
     $ stack test
     $ stack install
 
 Stack installs a binary called `lisper` into $PATH.
-
 
 ## REPL
 
@@ -30,20 +30,22 @@ Lisper has a simple shell.
 
 ## Resources
 
+1. [The scheme programming language](http://groups.csail.mit.edu/mac/projects/scheme/)
+1. [Revised 5 report on the algorithmic language scheme](./docs/r5rs.pdf)
+1. [(welcome '(schemers . org))](http://www.schemers.org)
+1. [The Scheme Programming Language (book)](http://www.scheme.com/tspl4/)
+
+--
+
 1. [What I Wish I Knew When Learning Haskell](http://dev.stephendiehl.com/hask/])
 1. [Wikibook: Write yourself a scheme in 48 hours](http://en.wikibooks.org/wiki/Write_Yourself_a_Scheme_in_48_Hours)
-1. https://github.com/haskell-lisp
+1. [A bunch of related projects](https://github.com/haskell-lisp)
 
 
 ## Contributing
 
-Install command line issue manager
-[Watson](https://github.com/nhmood/watson-ruby)
-
-    $ watson
-
-See reported issues as well as Issues.txt
-
+See reported issues, the Issues.txt file or run `$ watson` to look for minor
+issues in code. Fix failing test cases if any.
 
 ## License
 
