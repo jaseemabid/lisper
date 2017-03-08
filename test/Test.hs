@@ -71,6 +71,10 @@ let_ = testCase "Should evaluate let bindings" $ do
     exec "(let ((a (car '(1 2 3 4)))) a)" @?= Right (Number 1)
     exec "(let ((a '(1))) a)" @?= Right (List [Number 1])
 
+fail_ :: TestTree
+fail_ = testCase "Fail for undefined variables, not silent None" $
+    exec "(+ 1 err)" @?= Left "Undefined variable `err`"
+
 closure :: TestTree
 closure = testCase "Should evaluate let bindings with closures" $
     exec "(set! a 1) (let ((b 2)) (+ a b))" @?= Right (Number 3)
@@ -143,8 +147,8 @@ resolver = testGroup "Resolve" [res1, res2, res3, res4]
 
 special :: TestTree
 special = testGroup "Special forms"
-  [quote, let_, closure, override, lambda, lambdaExec, defLambda, define,
-   defineExec, defineMulti, fact]
+  [quote, let_, fail_, closure, override, lambda, lambdaExec, defLambda, define,
+    defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
