@@ -116,40 +116,10 @@ curry' = testCase "Should do simple currying" $
        \(let ((add4 (curry add 4))) (add4 4))"
   @?= Right (Number 8)
 
--- [todo] - Fix failing merge sort test
 merge :: TestTree
 merge = testCase "Should do merge sort" $
-  exec "(define (even l)                                            \
-       \  (if (null? l)                                             \
-       \      '()                                                   \
-       \    (if (null? (cdr l))                                     \
-       \        '()                                                 \
-       \      (cons (car (cdr l)) (even (cdr (cdr l)))))))          \
-       \                                                            \
-       \(define (odd l)                                             \
-       \  (if (null? l)                                             \
-       \      '()                                                   \
-       \    (if (null? (cdr l))                                     \
-       \        (list (car l))                                      \
-       \      (cons (car l) (odd (cdr (cdr l)))))))                 \
-       \                                                            \
-       \(define (merge left right)                                  \
-       \  (cond ((null? left) right)                                \
-       \        ((null? right) left)                                \
-       \        ((> (car left) (car right))                         \
-       \         (cons (car right) (merge left (cdr right))))       \
-       \        (else (cons (car left) (merge (cdr left) right))))) \
-       \                                                            \
-       \(define (merge-sort l)                                      \
-       \  (if (null? l)                                             \
-       \      l                                                     \
-       \    (if (null? (cdr l))                                     \
-       \        l                                                   \
-       \      (merge (merge-sort (odd l))                           \
-       \             (merge-sort (even l))))))                      \
-       \                                                            \
-       \(merge-sort '(9 1 6 8))" @?=
-  Right (List [Number 1, Number 6, Number 8, Number 9])
+  readFile "scripts/merge.ss" >>= \file ->
+    exec file @?= Right (List [Number 1, Number 6, Number 8, Number 9])
 
 primitives :: TestTree
 primitives = testGroup "Primitives" [eq, cons]
