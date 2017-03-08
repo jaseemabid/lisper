@@ -66,6 +66,12 @@ lambda = testCase "Should define lambda expressions" $
       Right _lv -> return ()
       x -> assertString $ show x
 
+defLambda :: TestTree
+defLambda = testCase "Define should handle lambda expressions" $ do
+  -- This seems to be a common style; not sure why
+  f <- readFile "scripts/fact.ss"
+  exec f @?= Right (Number 120)
+
 lambdaExec :: TestTree
 lambdaExec = testCase "Should apply lambda expressions" $
   exec "((lambda (x) (+ 1 x)) 41)" @?= Right (Number 42)
@@ -153,8 +159,8 @@ res = testGroup "Resolve" [res1, res2, res3, res4]
 
 special :: TestTree
 special = testGroup "Special forms"
-  [quote, let_, closure, override, lambda, lambdaExec, define, identifiers,
-   comments, defineExec, defineMulti, fact]
+  [quote, let_, closure, override, lambda, lambdaExec, defLambda, define,
+   identifiers, comments, defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
