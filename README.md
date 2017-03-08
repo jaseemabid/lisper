@@ -44,9 +44,10 @@ Lisper has a simple shell.
 
 ## Contributing
 
-See reported issues, the Issues.txt file or run `$ watson` to look for minor
-issues in code. Fix failing test cases if any.
+See reported issues or fix an of the failing test cases.
+
+`$ watson` reports a whole bunch of issues in code.
 
 ## License
 
-MIT licensed.
+MIT.
