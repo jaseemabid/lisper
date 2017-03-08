@@ -72,9 +72,19 @@ lambdaExec = testCase "Should apply lambda expressions" $
 
 define :: TestTree
 define = testCase "Should define named functions" $
-  case run "(define (add x) (+ 1 x))" of
+  case run [] "(define (add x) (+ 1 x))" of
       (Right _, [("add", _)]) -> return ()
       x -> assertString $ show x
+
+identifiers :: TestTree
+identifiers = testCase "Named functions should support all valid identifiers" $
+  case run [] "(define (int->bool x) (if (= x 0) #f #t)" of
+      (Right _, [("add", _)]) -> return ()
+      x -> assertString $ show x
+
+comments :: TestTree
+comments = testCase "Parser should handle comments" $
+    exec ";; 'hello" @?= Right NIL
 
 defineExec :: TestTree
 defineExec = testCase "Should apply named functions" $ do
@@ -143,8 +153,8 @@ res = testGroup "Resolve" [res1, res2, res3, res4]
 
 special :: TestTree
 special = testGroup "Special forms"
-  [quote, let_, closure, override, lambda, lambdaExec, define, defineExec,
-   defineMulti, fact]
+  [quote, let_, closure, override, lambda, lambdaExec, define, identifiers,
+   comments, defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]

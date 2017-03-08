@@ -167,13 +167,15 @@ progn (x:xs) = eval x >>= \case
 --
 -- This method is stateless and subsequent applications wont behave like a repl.
 exec :: String -> Either String LispVal
-exec str = evalState (progn $ readExpr str) []
+exec str = fst $ run [] str
 
 -- | Evaluate a string and return result, along with new env
 --
 -- This method is stateless and subsequent applications wont behave like a repl.
-run :: String -> (Either String LispVal, Env)
-run str = runState (progn $ readExpr str) []
+run :: Env -> String -> (Either String LispVal, Env)
+run env str = case readExpr str of
+                Right lv -> runState (progn lv) env
+                Left err -> (Left $ show err, env)
 
 -- Helpers
 applyPrimitive :: String -> [LispVal] -> LispVal

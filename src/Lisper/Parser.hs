@@ -8,6 +8,7 @@ module Lisper.Parser (parser, readExpr) where
 import           Lisper.Core
 import           Text.ParserCombinators.Parsec
 
+-- See § 2.1 of R5RS for grammar and allowed characters
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
@@ -36,7 +37,6 @@ parseAtom = do
 
 parseList :: Parser LispVal
 parseList = List <$> sepEndBy parseExpr spaces
-
 
 parseDottedList :: Parser LispVal
 parseDottedList = do
@@ -68,8 +68,6 @@ parseExpr = parseAtom
 parser :: Parser [LispVal]
 parser = many1 parseExpr
 
-readExpr :: String -> [LispVal]
-readExpr "" = []
-readExpr input = case parse parser "exp" input of
-    Right x -> x
-    Left err -> error $ "Cannot parse expr : " ++ show err
+readExpr :: String -> Either ParseError [LispVal]
+readExpr "" = Right []
+readExpr input = parse parser "exp" input

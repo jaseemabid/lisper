@@ -2,13 +2,11 @@
 
 module Lisper.Repl (runRepl) where
 
-import           Control.Monad.State
-import           Lisper.Core              (Env)
-import           Lisper.Parser
-import           Lisper.Eval
+import Lisper.Core              (Env)
+import Lisper.Eval
 
-import           System.Console.Haskeline
-import           System.Directory         (getHomeDirectory)
+import System.Console.Haskeline
+import System.Directory         (getHomeDirectory)
 
 -- [todo] - REPL must be stateful. *HIGH PRIORITY*
 -- [todo] - Improve input from stdin, Ie echo "(+ 1 1)" | lisper
@@ -28,6 +26,6 @@ runRepl = do
             Just line -> do
                 -- [TODO] - Move this entire computation into a State Monad
                 -- [TODO] - Pretty print avoiding `Left` and `Right`
-                let (result, env') = runState (progn $ readExpr line) env
+                let (result, env') = run env line
                 outputStrLn $ show result
                 loop env'
