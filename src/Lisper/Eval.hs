@@ -145,6 +145,7 @@ apply (Function closure _name formal body) args = do
     -- We are strict! Zipper evaluates arguments before passing to functions
     zipper :: LispVal -> LispVal -> State Env (Either String (String, LispVal))
     zipper (Atom var) val = do
+        -- [TODO] - This pattern match could fail
         Right result <- eval val
         return $ Right (var, result)
     zipper a b = return $ Left $ "Malformed function arguments" ++ show a  ++ " " ++ show b
