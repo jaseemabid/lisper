@@ -11,7 +11,24 @@ env = [("one", Number 1),
        ("name", Atom "Gollum"),
        ("l", List [Number 1, Number 2])]
 
+-- Parser tests
+
+negative :: TestTree
+negative = testCase "Parser should handle negative numbers" $
+    exec "(+ -1 1)" @?= Right (Number 0)
+
+comments :: TestTree
+comments = testCase "Parser should handle comments" $
+    exec ";; 'hello" @?= Right NIL
+
+identifiers :: TestTree
+identifiers = testCase "Named functions should support all valid identifiers" $
+  case run [] "(define (int->bool x) (if (= x 0) #f #t)" of
+      (Right _, [("add", _)]) -> return ()
+      x -> assertString $ show x
+
 -- Resolve tests
+
 res1 :: TestTree
 res1 = testCase "Should get numeric variables" $
   resolve "one" env @?= Just (Number 1)
@@ -29,6 +46,7 @@ res4 = testCase "Should fail for missing variables" $
           resolve "nope" env @?= Nothing
 
 -- Primitives
+
 eq :: TestTree
 eq = testCase "Should have eq, car and cdr" $ do
     exec "(eq (car '(1 2 3)) 1)" @?= Right (Bool True)
@@ -41,6 +59,7 @@ cons = testCase "Should make lists with cons" $
   exec "(cons 1 '(2 3))" @?= Right (List [Number 1, Number 2, Number 3])
 
 -- Special forms evaluations
+
 quote :: TestTree
 quote = testCase "(quote a) should be equivalent to 'a " $ do
     exec "(quote a)" @?= exec "'a"
@@ -82,16 +101,6 @@ define = testCase "Should define named functions" $
       (Right _, [("add", _)]) -> return ()
       x -> assertString $ show x
 
-identifiers :: TestTree
-identifiers = testCase "Named functions should support all valid identifiers" $
-  case run [] "(define (int->bool x) (if (= x 0) #f #t)" of
-      (Right _, [("add", _)]) -> return ()
-      x -> assertString $ show x
-
-comments :: TestTree
-comments = testCase "Parser should handle comments" $
-    exec ";; 'hello" @?= Right NIL
-
 defineExec :: TestTree
 defineExec = testCase "Should apply named functions" $ do
     exec "(define (add x) (+ 10 x)) (add 32)" @?= Right (Number 42)
@@ -121,22 +130,27 @@ merge = testCase "Should do merge sort" $
   readFile "scripts/merge.ss" >>= \file ->
     exec file @?= Right (List [Number 1, Number 6, Number 8, Number 9])
 
+-- Test trees
+
+parser :: TestTree
+parser = testGroup "Parser" [negative, comments, identifiers]
+
 primitives :: TestTree
 primitives = testGroup "Primitives" [eq, cons]
 
-res :: TestTree
-res = testGroup "Resolve" [res1, res2, res3, res4]
+resolver :: TestTree
+resolver = testGroup "Resolve" [res1, res2, res3, res4]
 
 special :: TestTree
 special = testGroup "Special forms"
   [quote, let_, closure, override, lambda, lambdaExec, defLambda, define,
-   identifiers, comments, defineExec, defineMulti, fact]
+   defineExec, defineMulti, fact]
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
 
 tests :: TestTree
-tests = testGroup "Unit Tests" [primitives, res, special, sample]
+tests = testGroup "Unit Tests" [parser, primitives, resolver, special, sample]
 
 -- | Test a single test, super convenient in the repl
 test :: TestTree -> IO ()
