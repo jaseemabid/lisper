@@ -9,31 +9,36 @@ import           Lisper.Core
 import           Text.ParserCombinators.Parsec
 
 -- See § 2.1 of R5RS for grammar and allowed characters
-symbol :: Parser Char
-symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
+identifier :: Parser Char
+identifier = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-parseString :: Parser LispVal
-parseString = do
+quote :: Parser Char
+quote = char '\''
+
+bool :: Parser Bool
+bool = char '#' >> (char 'f' <|> char 't') >>= \b -> return $ b == 't'
+
+str :: Parser String
+str = do
     _ <- char '"'
     x <- many (noneOf "\"")
     _ <- char '"'
-    return $ String x
+    return x
+
+-- Lisp types
+
+parseString :: Parser LispVal
+parseString = String <$> str
 
 -- [fix] - Parse negative numbers. Sort test fails with neg numbers
 parseNumber :: Parser LispVal
-parseNumber = do
-    d <- many1 digit
-    return $ (Number . read) d
+parseNumber = Number <$> (read <$> many1 digit)
 
 parseAtom :: Parser LispVal
-parseAtom = do
-    first <- letter <|> symbol
-    rest <- many (letter <|> digit <|> symbol)
-    let atom = first:rest
-    return $ case atom of
-        "#t" -> Bool True
-        "#f" -> Bool False
-        _    -> Atom atom
+parseAtom = Atom <$> (many1 (letter <|> digit <|> identifier))
+
+parseBool :: Parser LispVal
+parseBool = Bool <$> bool
 
 parseList :: Parser LispVal
 parseList = List <$> sepEndBy parseExpr spaces
@@ -46,12 +51,13 @@ parseDottedList = do
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
-    _ <- char '\''
+    _ <- quote
     x <- parseExpr
     return $ List [Quote, x]
 
 parseExpr :: Parser LispVal
 parseExpr = parseAtom
+  <|> parseBool
   <|> parseString
   <|> parseNumber
   <|> parseQuoted
