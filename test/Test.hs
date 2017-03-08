@@ -122,6 +122,11 @@ fact = testCase "Should do recursive functions" $
        \      (* x (fact (- x 1))))) \
        \ (fact 5)" @?= Right (Number 120)
 
+-- [TODO] - Malformed if, define, let etc give useless error message. Improve eval
+if_ :: TestTree
+if_ = testCase "If should work with just one branch" $
+  exec "(if (= #t #t) 1)" @?= Right (Number 1)
+
 curry' :: TestTree
 curry' = testCase "Should do simple currying" $
   exec "(define (curry fn x) (lambda (y) (fn x y)))                 \
@@ -147,7 +152,7 @@ resolver = testGroup "Resolve" [res1, res2, res3, res4]
 
 special :: TestTree
 special = testGroup "Special forms"
-  [quote, let_, fail_, closure, override, lambda, lambdaExec, defLambda, define,
+  [quote, let_, fail_, if_, closure, override, lambda, lambdaExec, defLambda, define,
     defineExec, defineMulti, fact]
 
 sample :: TestTree

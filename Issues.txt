@@ -19,7 +19,7 @@
 
 * Bugs [0/3]
 
-- [ ] Malformed define, let etc give useless error message. Improve eval
+- [ ]
 
 * Enhancements [0/2]
 
