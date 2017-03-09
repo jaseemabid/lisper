@@ -9,21 +9,27 @@ import           Lisper.Core
 import           Text.ParserCombinators.Parsec
 
 -- See § 2.1 of R5RS for grammar and allowed characters
-identifier :: Parser Char
-identifier = oneOf "!#$%&|*+-/:<=>?@^_~"
+symbol :: Parser Char
+symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
 quote :: Parser Char
 quote = char '\''
+
+dquote :: Parser Char
+dquote = char '"'
 
 bool :: Parser Bool
 bool = char '#' >> (char 'f' <|> char 't') >>= \b -> return $ b == 't'
 
 str :: Parser String
-str = do
-    _ <- char '"'
-    x <- many (noneOf "\"")
-    _ <- char '"'
-    return x
+str = between dquote dquote (many (noneOf "\""))
+
+-- | Identifiers cannot begin with a digit
+identifier :: Parser String
+identifier = do
+    a <- many1 (letter <|> symbol)
+    b <- many (alphaNum <|> symbol)
+    return (a ++ b)
 
 -- Lisp types
 
@@ -34,8 +40,9 @@ parseString = String <$> str
 parseNumber :: Parser LispVal
 parseNumber = Number <$> (read <$> many1 digit)
 
+-- | Identifiers cannot begin with a digit
 parseAtom :: Parser LispVal
-parseAtom = Atom <$> (many1 (letter <|> digit <|> identifier))
+parseAtom = Atom <$> identifier
 
 parseBool :: Parser LispVal
 parseBool = Bool <$> bool
@@ -51,8 +58,7 @@ parseDottedList = do
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
-    _ <- quote
-    x <- parseExpr
+    x <- quote *> parseExpr
     return $ List [Quote, x]
 
 parseExpr :: Parser LispVal
@@ -62,13 +68,9 @@ parseExpr = parseAtom
   <|> parseNumber
   <|> parseQuoted
   <|> do
-    _ <- spaces
-    _ <- char '('
-    _ <- spaces
+    spaces >> char '(' >> spaces
     x <- try parseList <|> parseDottedList
-    _ <- spaces
-    _ <- char ')'
-    _ <- spaces
+    spaces >> char ')' >> spaces
     return x
 
 parser :: Parser [LispVal]
