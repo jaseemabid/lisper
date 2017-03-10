@@ -6,164 +6,229 @@ import Test.Tasty.HUnit
 import Lisper.Core
 import Lisper.Eval
 
-env :: Env
-env = [("one", Number 1),
-       ("name", Atom "Gollum"),
-       ("l", List [Number 1, Number 2])]
+
+main :: IO ()
+main = defaultMain tests
+
+-- | Test a single test, super convenient in the repl
+test :: TestTree -> IO ()
+test a = defaultMain $ testGroup "Test" [a]
+
+tests :: TestTree
+tests = testGroup "Unit Tests" [parser
+                               , references
+                               , literal
+                               , calls
+                               , procedures
+                               , conditionals
+                               , assignments
+                               , cond
+                               , binding
+                               , sample]
 
 -- Parser tests
 
-negative :: TestTree
-negative = testCase "Parser should handle negative numbers" $
-    exec "(+ -1 1)" @?= Right (Number 0)
+everything :: TestTree
+everything = testCase "Understand all primitive types" $
+    exec "'(hello 1 -4 \"YES\" 'ok list->vector <=? ()) #t #f" @?=
+        Right (List [Atom "hello"
+                    , Number 1
+                    , Number (-4)
+                    , String "YES"
+                    , List [Atom "quote", Atom "ok"]
+                    , Atom "list->vector"
+                    , Atom "<=?"
+                    , NIL
+                    , Bool True
+                    , Bool False
+                    ])
 
 comments :: TestTree
-comments = testCase "Parser should handle comments" $
-    exec ";; 'hello" @?= Right NIL
+comments = testCase "Handle comments" $
+    exec ";; 'hello \n (+ 1 1)" @?= Right (Number 2)
 
-identifiers :: TestTree
-identifiers = testCase "Named functions should support all valid identifiers" $
-  case run [] "(define (int->bool x) (if (= x 0) #f #t)" of
-      (Right _, [("add", _)]) -> return ()
-      x -> assertString $ show x
+parser :: TestTree
+parser = testGroup "Parser" [everything, comments]
 
--- Resolve tests
+-- § 4.1; Primitive expression types
+-- § 4.1.1; Variable references
+
+def :: TestTree
+def = testCase "Simple define" $
+    exec "(define x 28) x" @?= Right (Number 28)
 
 res1 :: TestTree
-res1 = testCase "Should get numeric variables" $
-  resolve "one" env @?= Just (Number 1)
+res1 = testCase "Numeric reference" $
+    exec "(define one 1) one" @?= Right (Number 1)
 
 res2 :: TestTree
-res2 = testCase "Should get atom variables" $
-  resolve "name" env @?= Just (Atom "Gollum")
+res2 = testCase "Atomic reference" $
+    exec "(define name 'j)name" @?= Right (Atom "j")
 
 res3 :: TestTree
-res3 = testCase "Should get non native variables" $
-  resolve "l" env @?= Just (List [Number 1, Number 2])
+res3 = testCase "Non native reference" $
+    exec "(define l '(a b)" @?= Right (List [Atom "a", Atom "b"])
 
 res4 :: TestTree
-res4 = testCase "Should fail for missing variables" $
-          resolve "nope" env @?= Nothing
+res4 = testCase "Fail for missing variables" $ do
+    exec "nope" @?= Left "Undefined variable `nope`"
+    exec "(+ 1 err)" @?= Left "Undefined variable `err`"
 
--- Primitives
+references :: TestTree
+references = testGroup "Variable References" [def, res1, res2, res3, res4]
+
+-- § 4.1.2; Literal Expressions
+
+quote :: TestTree
+quote = testCase "(quote a) should be equivalent to 'a" $ do
+    exec "(quote a)" @?= exec "'a"
+    exec "(quote (1 2 3))" @?= exec "'(1 2 3)"
+
+literal :: TestTree
+literal = testGroup "Literal Expressions" [
+    quote,
+
+    testCase "(quote a)" $
+        exec "(quote a)" @?= Right (Atom "a"),
+
+    testCase "(quote '(a b c))" $
+        exec "(quote '(a b c))" @?=
+          Right (List [Atom "quote", List [Atom "a" , Atom "b" , Atom "c"]]),
+
+    testCase "(quote '(+ 1 2))" $
+        exec "(quote '(+ 1 2))" @?=
+            Right (List [Atom "quote", List [Atom "+" , Number 1 , Number 2]])]
+
+-- § 4.1.3; Procedure calls
 
 eq :: TestTree
-eq = testCase "Should have eq, car and cdr" $ do
+eq = testCase "Primitives; eq, car and cdr" $ do
     exec "(eq (car '(1 2 3)) 1)" @?= Right (Bool True)
     exec "(eq (cdr '(1 2 3)) '(2 3))" @?= Right (Bool True)
     exec "(eq 1 2)" @?= Right (Bool False)
     exec "(eq 1 '(1))" @?= Right (Bool False)
 
 cons :: TestTree
-cons = testCase "Should make lists with cons" $
-  exec "(cons 1 '(2 3))" @?= Right (List [Number 1, Number 2, Number 3])
+cons = testCase "Make lists with cons" $
+    exec "(cons 1 '(2 3))" @?= Right (List [Number 1, Number 2, Number 3])
 
--- Special forms evaluations
+calls :: TestTree
+calls = testGroup "Procedure calls" [eq, cons]
 
-quote :: TestTree
-quote = testCase "(quote a) should be equivalent to 'a " $ do
-    exec "(quote a)" @?= exec "'a"
-    exec "(quote (1 2 3))" @?= exec "'(1 2 3)"
+-- § 4.1.4; Procedures
+-- [TODO] - Add tests for alternate forms of lambda formals; see § 4.1.4
+
+lambda :: TestTree
+lambda = testCase "The obvious lambda expression" $
+    -- Equality on functions doesn't make sense, but this is required here
+    case exec "(define a 1)                                            \
+             \ (lambda (x) (+ 1 x))" of
+        Right (Function env args body) -> do
+            env @?= [("a", Number 1)]
+            args @?= [Atom "x"]
+            body @?= [List [Atom "+", Number 1, Atom "x"]]
+        x -> assertString $ show x
+
+iffe :: TestTree
+iffe = testCase "Immediately exec defined lambda expression" $
+    exec "((lambda (x) (+ x x)) 4)" @?= Right (Number 8)
+
+add :: TestTree
+add = testCase "Simple adder" $
+    exec "(define add (lambda (x y) (+ x y)))                          \
+        \ (add 10 20)" @?= Right (Number 30)
+
+define :: TestTree
+define = testCase "Define with let closure" $
+    exec "(define add4                                                 \
+        \   (let ((x 4))                                               \
+        \     (lambda (y) (+ x y))))                                   \
+        \ (add4 6) " @?= Right (Number 10)
+
+factorial :: TestTree
+factorial = testCase "Recursive factorial" $ do
+    f <- readFile "scripts/fact.ss"
+    exec f @?= Right (Number 120)
+
+named :: TestTree
+named = testCase "Apply named functions" $ do
+    exec "(define (add x) (+ 10 x)) (add 32)" @?= Right (Number 42)
+    exec "((define (const) 42) (const))" @?= Right (Number 42)
+
+procedures :: TestTree
+procedures = testGroup "Procedures" [lambda, iffe, add, define, factorial, named]
+
+-- § 4.1.5; conditionals
+-- [TODO] - See § 6.3.1 and verify what values scheme consider truthy
+
+ifOk :: TestTree
+ifOk = testCase "The obvious if" $ do
+    exec "(if #t 1 2)" @?= Right (Number 1)
+    exec "(if #f 1 2)" @?= Right (Number 2)
+    exec "(let ((a 1)                                                   \
+        \       (b 2))                                                  \
+        \   (if (> a b) a b))" @?= Right (Number 2)
+
+ifOne :: TestTree
+ifOne = testCase "If should work with just one branch" $ do
+  exec "(if #t 42)" @?= Right (Number 42)
+  exec "(if #f 42)" @?= Left "Unspecified return value"
+
+conditionals :: TestTree
+conditionals = testGroup "Conditionals" [ifOk, ifOne]
+
+--  § 4.1.6; Assignments
+-- [TODO] - Its OK to set! at top level; I don't like that :/
+set :: TestTree
+set = testCase "Nuances of set" $ do
+    exec "(define a #t) (set! a #f) a" @?= Right (Bool False)
+
+    exec "(let ((a 1))                                                  \
+        \   (set! a 2)                                                  \
+        \   a)" @?= Right (Number 2)
+
+    exec "(set! a #f) a" @?= Left "Undefined variable `a`"
+
+assignments :: TestTree
+assignments = testGroup "Assignments" [set]
+
+-- § 4.2; Derived expression types
+-- § 4.2.1; Conditionals (cond)
+
+cond :: TestTree
+cond = testGroup "Cond" []
+
+-- § 4.2.2; Binding constructs
 
 let_ :: TestTree
-let_ = testCase "Should evaluate let bindings" $ do
+let_ = testCase "Evaluate let bindings" $ do
     exec "(let ((a 12) (b 42)) (+ a b))" @?= Right (Number 54)
     exec "(let ((a (car '(1 2 3 4)))) a)" @?= Right (Number 1)
     exec "(let ((a '(1))) a)" @?= Right (List [Number 1])
 
-fail_ :: TestTree
-fail_ = testCase "Fail for undefined variables, not silent None" $
-    exec "(+ 1 err)" @?= Left "Undefined variable `err`"
-
 closure :: TestTree
-closure = testCase "Should evaluate let bindings with closures" $
+closure = testCase "Evaluate let bindings with closures" $
     exec "(set! a 1) (let ((b 2)) (+ a b))" @?= Right (Number 3)
 
 override :: TestTree
 override = testCase "Let bindings should overrides closure" $
     exec "(set! a 1) (let ((a 2) (b 2)) (+ a b))" @?= Right (Number 4)
 
-lambda :: TestTree
-lambda = testCase "Should define lambda expressions" $
-  case exec "(lambda (x) (+ 1 x))" of
-      Right _lv -> return ()
-      x -> assertString $ show x
+binding :: TestTree
+binding = testGroup "Binding Constructs" [let_, closure, override]
 
-defLambda :: TestTree
-defLambda = testCase "Define should handle lambda expressions" $ do
-  -- This seems to be a common style; not sure why
-  f <- readFile "scripts/fact.ss"
-  exec f @?= Right (Number 120)
-
-lambdaExec :: TestTree
-lambdaExec = testCase "Should apply lambda expressions" $
-  exec "((lambda (x) (+ 1 x)) 41)" @?= Right (Number 42)
-
-define :: TestTree
-define = testCase "Should define named functions" $
-  case run [] "(define (add x) (+ 1 x))" of
-      (Right _, [("add", _)]) -> return ()
-      x -> assertString $ show x
-
-defineExec :: TestTree
-defineExec = testCase "Should apply named functions" $ do
-    exec "(define (add x) (+ 10 x)) (add 32)" @?= Right (Number 42)
-    exec "((define (const) 42) (const))" @?= Right (Number 42)
-
-defineMulti :: TestTree
-defineMulti = testCase "Body of define may have multiple expressions" $
-  exec "(define (add x) (set! ret (+ 1 x)) ret) (add 41)" @?= Right (Number 42)
-
-fact :: TestTree
-fact = testCase "Should do recursive functions" $
-  exec "(define (fact x) \
-       \    (if (= x 0) \
-       \      1 \
-       \      (* x (fact (- x 1))))) \
-       \ (fact 5)" @?= Right (Number 120)
-
--- [TODO] - Malformed if, define, let etc give useless error message. Improve eval
-if_ :: TestTree
-if_ = testCase "If should work with just one branch" $
-  exec "(if (= #t #t) 1)" @?= Right (Number 1)
+-- Sample programs
 
 curry' :: TestTree
-curry' = testCase "Should do simple currying" $
-  exec "(define (curry fn x) (lambda (y) (fn x y)))                 \
-       \(define (add x y) (+ x y))                                  \
-       \(let ((add4 (curry add 4))) (add4 4))"
-  @?= Right (Number 8)
+curry' = testCase "Simple currying" $
+  exec "(define (curry fn x) (lambda (y) (fn x y)))                    \
+      \ (define (add x y) (+ x y))                                     \
+      \ (let ((add4 (curry add 4))) (add4 4))" @?= Right (Number 8)
 
 merge :: TestTree
-merge = testCase "Should do merge sort" $
-  readFile "scripts/merge.ss" >>= \file ->
-    exec file @?= Right (List [Number 1, Number 6, Number 8, Number 9])
-
--- Test trees
-
-parser :: TestTree
-parser = testGroup "Parser" [negative, comments, identifiers]
-
-primitives :: TestTree
-primitives = testGroup "Primitives" [eq, cons]
-
-resolver :: TestTree
-resolver = testGroup "Resolve" [res1, res2, res3, res4]
-
-special :: TestTree
-special = testGroup "Special forms"
-  [quote, let_, fail_, if_, closure, override, lambda, lambdaExec, defLambda, define,
-    defineExec, defineMulti, fact]
+merge = testCase "Simple merge sort" $
+    readFile "scripts/merge.ss" >>= \file ->
+        exec file @?= Right (List [Number 1, Number 6, Number 8, Number 9])
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
-
-tests :: TestTree
-tests = testGroup "Unit Tests" [parser, primitives, resolver, special, sample]
-
--- | Test a single test, super convenient in the repl
-test :: TestTree -> IO ()
-test a = defaultMain $ testGroup "" [a]
-
-main :: IO ()
-main = defaultMain tests
