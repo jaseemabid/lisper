@@ -44,8 +44,16 @@ pattern NIL :: LispVal
 pattern NIL = List []
 
 -- Special forms
-pattern Define :: String -> [LispVal] -> [LispVal] -> LispVal
-pattern Define name args body =
+
+-- [TODO] - `define` supports only the 2 simple forms for now.
+--
+-- Handle expressions of the form `(define a 42)`
+pattern Define1 :: String -> LispVal -> LispVal
+pattern Define1 var expr = List [Atom "define", Atom var, expr]
+
+-- Handle expressions of the form `(define (add a b) (+ a b))`
+pattern Define2 :: String -> [LispVal] -> [LispVal] -> LispVal
+pattern Define2 name args body =
     List (Atom "define" : List (Atom name : args) : body)
 
 pattern If :: LispVal -> LispVal -> LispVal -> LispVal

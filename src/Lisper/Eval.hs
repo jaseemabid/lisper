@@ -74,15 +74,21 @@ eval (Set var val) = do
     modify $ \env -> (var, result) : env
     return $ Right result
 
+-- Define special form, simple case
+eval (Define1 var expr) = do
+    Right result <- eval expr
+    modify $ \env -> (var, result) : env
+    return $ Right result
+
 -- Function definitions
-eval (Define name args body) = do
+eval (Define2 name args body) = do
     env <- get
     case duplicates args of
       [] -> do
           put env'
           return $ Right fn
         where
-          fn = Function env' (Just name) args body
+          fn = Function env' args body
           env' = (name, fn) : env
       x -> return $ Left err
         where
@@ -94,7 +100,7 @@ eval (Lambda args body) = do
     case duplicates args of
       [] -> return $ Right fn
         where
-          fn = Function env Nothing args body
+          fn = Function env args body
       x -> return $ Left err
         where
           err = "Duplicate argument " ++ show x ++ " in function definition"
@@ -132,7 +138,7 @@ eval (List (function : args)) = do
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
 apply :: LispVal -> [LispVal] -> State Env (Either String LispVal)
-apply (Function closure _name formal body) args = do
+apply (Function closure formal body) args = do
     env <- get
     local' <- zipWithM zipper formal args
     -- [TODO] - `rights` is probably eating errors silently
