@@ -34,6 +34,7 @@ Lisper has a simple shell.
 1. [Revised 5 report on the algorithmic language scheme](./docs/r5rs.pdf)
 1. [(welcome '(schemers . org))](http://www.schemers.org)
 1. [The Scheme Programming Language (book)](http://www.scheme.com/tspl4/)
+1. [Write you a Haskell](http://dev.stephendiehl.com/fun/)
 
 --
 
