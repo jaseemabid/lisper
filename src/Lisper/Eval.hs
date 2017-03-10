@@ -69,6 +69,8 @@ eval (If predicate conseq alt) = do
         _ -> return $ Left "If needs a Boolean predicate"
 
 -- Set special form
+--
+--`set!` can change any existing binding, but not introduce a new one
 eval (Set var val) = do
     Right result <- eval val
     modify $ \env -> (var, result) : env
