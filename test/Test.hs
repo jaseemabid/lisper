@@ -67,7 +67,7 @@ res2 = testCase "Symbolic reference" $
 
 res3 :: TestTree
 res3 = testCase "Non native reference" $
-    exec "(define l '(a b)" @?= Right (List [Symbol "a", Symbol "b"])
+    exec "(define l '(a b)) l" @?= Right (List [Symbol "a", Symbol "b"])
 
 res4 :: TestTree
 res4 = testCase "Fail for missing variables" $ do
