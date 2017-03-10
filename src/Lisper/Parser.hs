@@ -36,12 +36,12 @@ parseNumber :: Parser Scheme
 parseNumber = Number <$> p
   where
     p :: Parser Integer
-    p = do
-        sign <- optionMaybe (char '-')
-        d <- P.read <$> many1 digit
+    p = try $ do
+        sign <- option ' ' (char '-')
+        d <- try (P.read <$> many1 digit)
         return $ case sign of
-                   Just _ ->  -1 * d
-                   Nothing ->  d
+                   '-' -> -1 * d
+                   _ ->  d
 
 -- | Parse any valid scheme identifier
 --
@@ -65,8 +65,8 @@ parseSymbol = Symbol <$> identifier
     subsequent = initial <|> digit <|> oneOf ".+-"
 
     identifier :: Parser String
-    identifier = try (string "+") <* space
-        <|> try (string "-") <* space
+    identifier = try (string "+" <* notFollowedBy alphaNum)
+        <|> try (string "-" <* notFollowedBy alphaNum)
         <|> try (string "...") <* space
         <|> do
             i <- initial
