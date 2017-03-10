@@ -37,7 +37,7 @@ eval (Symbol key) = do
     env <- get
     case resolve key env of
       Just val -> return $ Right val
-      Nothing -> return $ Left $ "Undefined variable " ++ show key
+      Nothing -> return $ Left $ "Undefined variable `" ++ key ++ "`"
 
 -- Let special form
 eval (Let args body) = do
