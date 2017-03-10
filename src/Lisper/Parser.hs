@@ -10,8 +10,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms   #-}
 
-module Lisper.Parser (parser, readExpr) where
+module Lisper.Parser (parser, read) where
 
+import Prelude hiding (read)
+import qualified Prelude as P
 import Data.Char (toLower)
 import Lisper.Core
 import Text.ParserCombinators.Parsec
@@ -36,7 +38,7 @@ parseNumber = Number <$> p
     p :: Parser Integer
     p = do
         sign <- optionMaybe (char '-')
-        d <- read <$> many1 digit
+        d <- P.read <$> many1 digit
         return $ case sign of
                    Just _ ->  -1 * d
                    Nothing ->  d
@@ -115,6 +117,6 @@ parseExpr = parseComment
 parser :: Parser [Scheme]
 parser = many1 parseExpr
 
-readExpr :: String -> Either ParseError [Scheme]
-readExpr "" = Right []
-readExpr input = parse parser "exp" input
+read :: String -> Either ParseError [Scheme]
+read "" = Right []
+read input = parse parser "" input

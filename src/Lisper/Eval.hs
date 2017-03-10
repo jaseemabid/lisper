@@ -7,6 +7,7 @@ module Lisper.Eval where
 import Control.Monad.State.Lazy
 import Data.Either
 import Data.List (nub, (\\))
+import Prelude hiding (read)
 
 import Lisper.Core
 import Lisper.Parser
@@ -184,7 +185,7 @@ exec str = fst $ run [] str
 --
 -- This method is stateless and subsequent applications wont behave like a repl.
 run :: Env -> String -> (Either String Scheme, Env)
-run env str = case readExpr str of
+run env str = case read str of
                 Right lv -> runState (progn lv) env
                 Left err -> (Left $ show err, env)
 
