@@ -7,7 +7,7 @@ module Lisper.Core where
 -- | [TODO] - Replace `LispVal` with `LispVal a`
 data LispVal = Atom String
              | List [LispVal]
-             | Function Env (Maybe String) [LispVal] [LispVal]
+             | Function Env [LispVal] [LispVal]
              | DottedList [LispVal] LispVal
              | Number Integer
              | String String
@@ -24,8 +24,8 @@ instance Show LispVal where
     show (DottedList h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String s) = "\"" ++ s ++ "\""
     show (Number n) = show n
-    show (Function _ (Just name) _ _) = "<λ " ++ name ++ " >"
-    show (Function _ Nothing _ _) = "<λ>"
+    -- [TODO] - Make show instance for functions more descriptive in test builds
+    show (Function _ _ _) = "<λ>"
     show (Bool True) = "#t"
     show (Bool False) = "#f"
 
