@@ -6,7 +6,6 @@ import Test.Tasty.HUnit
 import Lisper.Core
 import Lisper.Eval
 
-
 main :: IO ()
 main = defaultMain tests
 
@@ -31,13 +30,13 @@ tests = testGroup "Unit Tests" [parser
 everything :: TestTree
 everything = testCase "Understand all primitive types" $
     exec "'(hello 1 -4 \"YES\" 'ok list->vector <=? ()) #t #f" @?=
-        Right (List [Atom "hello"
+        Right (List [Symbol "hello"
                     , Number 1
                     , Number (-4)
                     , String "YES"
-                    , List [Atom "quote", Atom "ok"]
-                    , Atom "list->vector"
-                    , Atom "<=?"
+                    , List [Symbol "quote", Symbol "ok"]
+                    , Symbol "list->vector"
+                    , Symbol "<=?"
                     , NIL
                     , Bool True
                     , Bool False
@@ -62,12 +61,12 @@ res1 = testCase "Numeric reference" $
     exec "(define one 1) one" @?= Right (Number 1)
 
 res2 :: TestTree
-res2 = testCase "Atomic reference" $
-    exec "(define name 'j)name" @?= Right (Atom "j")
+res2 = testCase "Symbolic reference" $
+    exec "(define name 'j) name" @?= Right (Symbol "j")
 
 res3 :: TestTree
 res3 = testCase "Non native reference" $
-    exec "(define l '(a b)" @?= Right (List [Atom "a", Atom "b"])
+    exec "(define l '(a b)" @?= Right (List [Symbol "a", Symbol "b"])
 
 res4 :: TestTree
 res4 = testCase "Fail for missing variables" $ do
@@ -89,15 +88,15 @@ literal = testGroup "Literal Expressions" [
     quote,
 
     testCase "(quote a)" $
-        exec "(quote a)" @?= Right (Atom "a"),
+        exec "(quote a)" @?= Right (Symbol "a"),
 
     testCase "(quote '(a b c))" $
         exec "(quote '(a b c))" @?=
-          Right (List [Atom "quote", List [Atom "a" , Atom "b" , Atom "c"]]),
+          Right (List [Symbol "quote", List [Symbol "a", Symbol "b", Symbol "c"]]),
 
     testCase "(quote '(+ 1 2))" $
         exec "(quote '(+ 1 2))" @?=
-            Right (List [Atom "quote", List [Atom "+" , Number 1 , Number 2]])]
+            Right (List [Symbol "quote", List [Symbol "+", Number 1, Number 2]])]
 
 -- § 4.1.3; Procedure calls
 
@@ -123,10 +122,10 @@ lambda = testCase "The obvious lambda expression" $
     -- Equality on functions doesn't make sense, but this is required here
     case exec "(define a 1)                                            \
              \ (lambda (x) (+ 1 x))" of
-        Right (Function env args body) -> do
+        Right (Procedure env args body) -> do
             env @?= [("a", Number 1)]
-            args @?= [Atom "x"]
-            body @?= [List [Atom "+", Number 1, Atom "x"]]
+            args @?= [Symbol "x"]
+            body @?= [List [Symbol "+", Number 1, Symbol "x"]]
         x -> assertString $ show x
 
 iffe :: TestTree
