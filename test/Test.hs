@@ -29,15 +29,16 @@ tests = testGroup "Unit Tests" [parser
 
 everything :: TestTree
 everything = testCase "Understand all primitive types" $
-    exec "'(hello 1 -4 \"YES\" 'ok list->vector <=? ()) #t #f" @?=
+    exec "'(hello 1 -4 \"YES\" 'ok a->b <=? () '() #t #f)" @?=
         Right (List [Symbol "hello"
                     , Number 1
                     , Number (-4)
                     , String "YES"
                     , List [Symbol "quote", Symbol "ok"]
-                    , Symbol "list->vector"
+                    , Symbol "a->b"
                     , Symbol "<=?"
                     , NIL
+                    , List [Symbol "quote", NIL]
                     , Bool True
                     , Bool False
                     ])
