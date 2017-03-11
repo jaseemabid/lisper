@@ -64,12 +64,17 @@ eval (Cond body) =
       err -> throwError $ "Syntax error: Expected alist; got " ++ show err ++ " instead"
 
 -- If special form
-eval (If predicate conseq alt) =
+eval (If1 predicate conseq alt) =
     eval predicate >>= \case
         Bool True -> eval conseq
         Bool False -> eval alt
         NIL -> eval alt
         err -> throwError $ "Expected boolean; got `" ++ show err ++ "` instead"
+
+eval (If2 predicate conseq) =
+    eval predicate >>= \case
+        Bool True -> eval conseq
+        _ -> throwError "Unspecified return value"
 
 -- Set special form
 --

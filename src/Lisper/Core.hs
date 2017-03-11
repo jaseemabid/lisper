@@ -61,8 +61,11 @@ pattern Define2 :: String -> [Scheme] -> [Scheme] -> Scheme
 pattern Define2 name args body =
     List (Symbol "define" : List (Symbol name : args) : body)
 
-pattern If :: Scheme -> Scheme -> Scheme -> Scheme
-pattern If predicate conseq alt = List [Symbol "if", predicate, conseq, alt]
+pattern If1 :: Scheme -> Scheme -> Scheme -> Scheme
+pattern If1 predicate conseq alt = List [Symbol "if", predicate, conseq, alt]
+
+pattern If2 :: Scheme -> Scheme -> Scheme
+pattern If2 predicate conseq = List [Symbol "if", predicate, conseq]
 
 pattern Lambda :: [Scheme] -> [Scheme] -> Scheme
 pattern Lambda args body = List (Symbol "lambda" : List args: body)
