@@ -39,7 +39,7 @@ eval (Symbol key) = do
     env <- get
     case lookup key env of
         Just val -> return val
-        Nothing -> fail $ "Undefined variable `" ++ key ++ "` in env " ++ show env
+        Nothing -> throwError $ "Undefined variable `" ++ key ++ "`"
 
 -- Let special form
 -- [TODO] - `let` should be implemented as a macro
@@ -61,7 +61,7 @@ eval (Cond body) =
               Bool False -> eval (Cond xs)
               _ -> eval value
       [] -> return NIL
-      err -> fail $ "Syntax error: Expected alist; got " ++ show err ++ " instead"
+      err -> throwError $ "Syntax error: Expected alist; got " ++ show err ++ " instead"
 
 -- If special form
 eval (If predicate conseq alt) =
@@ -69,7 +69,7 @@ eval (If predicate conseq alt) =
         Bool True -> eval conseq
         Bool False -> eval alt
         NIL -> eval alt
-        err -> fail $ "Expected boolean; got `" ++ show err ++ "` instead"
+        err -> throwError $ "Expected boolean; got `" ++ show err ++ "` instead"
 
 -- Set special form
 --
@@ -96,14 +96,14 @@ eval (Define2 name args body) = do
             fn = Procedure env' args body
             env' = (name, fn) : env
 
-        x -> fail $ "Duplicate argument " ++ show x ++ " in function definition"
+        x -> throwError $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Lambda definition
 eval (Lambda args body) = do
     env <- get
     case duplicates args of
       [] -> return $ Procedure env args body
-      x -> fail $ "Duplicate argument " ++ show x ++ " in function definition"
+      x -> throwError $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Procedure application with name
 eval (List (Symbol func : args)) = do
@@ -115,7 +115,7 @@ eval (List (Symbol func : args)) = do
 -- Inline function invocation
 eval (List (function : args)) = eval function >>= \fn -> apply fn args
 
-eval lv = fail $ "Unknown value; " ++ show lv
+eval lv = throwError $ "Unknown value; " ++ show lv
 
 -- | Apply a function with a list of arguments
 --
@@ -143,13 +143,13 @@ apply (Symbol func) args =
         Just primitive ->
             mapM eval args >>= \args' -> return $ primitive args'
         Nothing ->
-            fail $ "Undefined primitive function " ++ show func
+            throwError $ "Undefined primitive function " ++ show func
 
-apply fn _args = fail $ "Procedure Application Error. Fn: " ++ show fn
+apply fn _args = throwError $ "Procedure Application Error. Fn: " ++ show fn
 
 -- | Evaluate a list of expressions sequentially; and return the result of last
 --
--- Progn needs to stop at the first failure and hence the intermediatary results
+-- Progn needs to stop at the first throwErrorure and hence the intermediatary results
 -- are forced with a `seq`. I'm not sure if this is the right way to do things,
 -- but works for now.
 progn :: [Scheme] -> Result Scheme
@@ -175,14 +175,14 @@ alistToEnv (List xs) = mapM trans xs
     -- [TODO] - trans and zipper look a bit too similar; refactor into one
     trans :: Scheme -> Result (String, Scheme)
     trans (List[Symbol var, val]) = eval val >>= \result -> return (var, result)
-    trans _ = fail "Malformed alist passed to let"
+    trans _ = throwError "Malformed alist passed to let"
 
-alistToEnv _ = fail "Second argument to let should be an alist"
+alistToEnv _ = throwError "Second argument to let should be an alist"
 
 -- We are strict! Zipper evaluates arguments before passing to functions
 zipper :: Scheme -> Scheme -> Result (String, Scheme)
 zipper (Symbol var) val = eval val >>= \result -> return (var, result)
-zipper a b = fail $ "Malformed function arguments" ++ show a  ++ " " ++ show b
+zipper a b = throwError $ "Malformed function arguments" ++ show a  ++ " " ++ show b
 
 -- Exposed API
 
