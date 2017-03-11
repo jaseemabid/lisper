@@ -80,9 +80,9 @@ eval (If2 predicate conseq) =
 --
 --`set!` can change any existing binding, but not introduce a new one
 eval (Set var val) = do
-    result <- eval val
-    modify $ \env -> (var, result) : env
-    return result
+    void $ eval $ Symbol var
+    eval val >>= \result -> modify $ \env -> (var, result) : env
+    return NIL
 
 -- Define special form, simple case
 eval (Define1 var expr) = do

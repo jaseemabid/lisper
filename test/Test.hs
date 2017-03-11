@@ -208,11 +208,11 @@ let_ = testCase "Evaluate let bindings" $ do
 
 closure :: TestTree
 closure = testCase "Evaluate let bindings with closures" $
-    exec "(set! a 1) (let ((b 2)) (+ a b))" @?= Right (Number 3)
+    exec "(define a 1) (let ((b 2)) (+ a b))" @?= Right (Number 3)
 
 override :: TestTree
 override = testCase "Let bindings should overrides closure" $
-    exec "(set! a 1) (let ((a 2) (b 2)) (+ a b))" @?= Right (Number 4)
+    exec "(define a 1) (let ((a 2) (b 2)) (+ a b))" @?= Right (Number 4)
 
 binding :: TestTree
 binding = testGroup "Binding Constructs" [let_, closure, override]
