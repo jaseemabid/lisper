@@ -4,6 +4,8 @@
 
 module Lisper.Eval where
 
+import Control.Monad.Except
+import Control.Monad.Identity
 import Control.Monad.State.Lazy
 import Data.Either
 import Data.List (nub, (\\))
@@ -13,121 +15,107 @@ import Lisper.Core
 import Lisper.Parser
 import Lisper.Primitives
 
+type Result a = StateT Env (ExceptT String Identity) a
+
 -- | Evaluate an expression and return the result or error if any.
 --
 -- The environment maybe updated by specifc commands like `set!`, and is handled
 -- by the `State` monad. Env should be mostly left unmodified unless the body is
 -- of the form of a `define` or a `set`.
+eval :: Scheme -> Result Scheme
 
--- [TODO] - Eventually replace `String` with a Stacktrace or something.
--- [TODO] - Clean up this API with a monad transformer
-eval :: Scheme -> State Env (Either String Scheme)
+-- Eval on primitive values is no-op:
+eval val@(Bool _) = return val
+eval val@(List []) = return val
+eval val@(Number _) = return val
+eval val@(Pair _ _) = return val
+eval val@Procedure{} = return val
+eval val@(String _) = return val
 
--- Eval on primitive values is no-op
-eval val@(Bool _) = return $ Right val
-eval val@(List []) = return $ Right val
-eval val@(Number _) = return $ Right val
-eval val@(Pair _ _) = return $ Right val
-eval val@Procedure{} = return $ Right val
-eval val@(String _) = return $ Right val
-
-eval (List [Quote, val]) = return $ Right val
+eval (List [Quote, val]) = return val
 
 -- Variable lookup
 eval (Symbol key) = do
     env <- get
-    case resolve key env of
-      Just val -> return $ Right val
-      Nothing -> return $ Left $ "Undefined variable `" ++ key ++ "`"
+    case lookup key env of
+        Just val -> return val
+        Nothing -> fail $ "Undefined variable `" ++ key ++ "` in env " ++ show env
 
 -- Let special form
+-- [TODO] - `let` should be implemented as a macro
 eval (Let args body) = do
     env <- get
-    Right env' <- alistToEnv args
-    return $ evalState (progn body) (env' ++ env)
+    arguments <- alistToEnv args
+    let local = arguments ++ env
+    lift $ evalStateT (progn body) local
 
 -- [TODO] - Verify default value of `cond` if no branches match
+-- [TODO] - `cond` should be implemented as a macro
 -- Return `NIL if no branches match
 eval (Cond body) =
     case body of
       (List [Symbol "else", value]: _xs) -> eval value
       (List [predicate, value]: xs) ->
           eval predicate >>= \case
-              Right NIL -> eval (Cond xs)
-              Right (Bool False) -> eval (Cond xs)
-              Right _ -> eval value
-              Left err -> return $ Left err
-      [] -> return $ Right NIL
-      err -> return $ Left $ "Syntax error: expected alist; got " ++ show err ++ " instead"
+              NIL -> eval (Cond xs)
+              Bool False -> eval (Cond xs)
+              _ -> eval value
+      [] -> return NIL
+      err -> fail $ "Syntax error: Expected alist; got " ++ show err ++ " instead"
 
 -- If special form
-eval (If predicate conseq alt) = do
-    Right result <- eval predicate
-    case result of
+eval (If predicate conseq alt) =
+    eval predicate >>= \case
         Bool True -> eval conseq
         Bool False -> eval alt
         NIL -> eval alt
-        _ -> return $ Left "If needs a Boolean predicate"
+        err -> fail $ "Expected boolean; got `" ++ show err ++ "` instead"
 
 -- Set special form
 --
 --`set!` can change any existing binding, but not introduce a new one
 eval (Set var val) = do
-    Right result <- eval val
+    result <- eval val
     modify $ \env -> (var, result) : env
-    return $ Right result
+    return result
 
 -- Define special form, simple case
 eval (Define1 var expr) = do
-    Right result <- eval expr
+    result <- eval expr
     modify $ \env -> (var, result) : env
-    return $ Right result
+    return result
 
 -- Procedure definitions
 eval (Define2 name args body) = do
     env <- get
     case duplicates args of
-      [] -> do
-          put env'
-          return $ Right fn
-        where
-          fn = Procedure env' args body
-          env' = (name, fn) : env
-      x -> return $ Left err
-        where
-          err = "Duplicate argument " ++ show x ++ " in function definition"
+        [] -> do
+            put env'
+            return fn
+          where
+            fn = Procedure env' args body
+            env' = (name, fn) : env
+
+        x -> fail $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Lambda definition
 eval (Lambda args body) = do
     env <- get
     case duplicates args of
-      [] -> return $ Right fn
-        where
-          fn = Procedure env args body
-      x -> return $ Left err
-        where
-          err = "Duplicate argument " ++ show x ++ " in function definition"
+      [] -> return $ Procedure env args body
+      x -> fail $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Procedure application with name
 eval (List (Symbol func : args)) = do
     env <- get
     case lookup func env of
-        -- Procedure application with name
         Just fn -> apply fn args
-        Nothing -> do
-            -- [TODO] - Rewrite this. This is only the first version I could
-            -- manage to get compiled after a few hours of struggles with mtl
-            -- errors.
-            args' <- mapM (\lv -> return $ evalState (eval lv) env) args
-            -- [TODO] - `rights` is probably eating errors silently
-            return $ Right $ applyPrimitive func (rights args')
+        Nothing -> apply (Symbol func) args
 
 -- Inline function invocation
-eval (List (function : args)) = do
-    Right fn <- eval function
-    apply fn args
+eval (List (function : args)) = eval function >>= \fn -> apply fn args
 
-eval _ = return $ Left "Unknown type"
+eval lv = fail $ "Unknown value; " ++ show lv
 
 -- | Apply a function with a list of arguments
 --
@@ -142,38 +130,61 @@ eval _ = return $ Left "Unknown type"
 -- This gives the added benefit that the caller's environment is not needed
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
-apply :: Scheme -> [Scheme] -> State Env (Either String Scheme)
+apply :: Scheme -> [Scheme] -> Result Scheme
 apply (Procedure closure formal body) args = do
     env <- get
-    local' <- zipWithM zipper formal args
-    -- [TODO] - `rights` is probably eating errors silently
-    let local = rights local' :: Env
+    local <- zipWithM zipper formal args
     let extended = closure ++ local ++ env
 
-    return $ evalState (progn body) extended
+    lift $ evalStateT (progn body) extended
 
-  where
-    -- We are strict! Zipper evaluates arguments before passing to functions
-    zipper :: Scheme -> Scheme -> State Env (Either String (String, Scheme))
-    zipper (Symbol var) val = do
-        -- [TODO] - This pattern match could fail
-        Right result <- eval val
-        return $ Right (var, result)
-    zipper a b = return $ Left $ "Malformed function arguments" ++ show a  ++ " " ++ show b
+apply (Symbol func) args =
+    case lookup func primitives of
+        Just primitive ->
+            mapM eval args >>= \args' -> return $ primitive args'
+        Nothing ->
+            fail $ "Undefined primitive function " ++ show func
 
-apply fn _args = return $ Left $ "Procedure Application Error. Fn: " ++ show fn
+apply fn _args = fail $ "Procedure Application Error. Fn: " ++ show fn
 
 -- | Evaluate a list of expressions sequentially; and return the result of last
 --
 -- Progn needs to stop at the first failure and hence the intermediatary results
 -- are forced with a `seq`. I'm not sure if this is the right way to do things,
 -- but works for now.
-progn :: [Scheme] -> State Env (Either String Scheme)
-progn [] = return $ Right NIL
+progn :: [Scheme] -> Result Scheme
+progn [] = return NIL
 progn [x] = eval x
-progn (x:xs) = eval x >>= \case
-    Right lv -> seq lv $ progn xs
-    err -> return err
+progn (x:xs) = eval x >>= \lv -> seq lv $ progn xs
+
+-- | Return duplicate items in the list
+--
+-- >>> duplicates [1, 2, 3, 4, 1]
+-- [1]
+duplicates :: [Scheme] -> [Scheme]
+duplicates xs = xs \\ nub xs
+
+-- | Transforms a let args tuple list to env
+--
+-- `(let ((a 1) (b (+ 1 1))) (+ a b))` -> `[(a, 1), (b, 2)]`
+
+alistToEnv :: Scheme -> Result Env
+alistToEnv (List xs) = mapM trans xs
+  where
+    -- | Transform an alist of the form `(a (+ 1 1))` to a `(a 1)` expression
+    -- [TODO] - trans and zipper look a bit too similar; refactor into one
+    trans :: Scheme -> Result (String, Scheme)
+    trans (List[Symbol var, val]) = eval val >>= \result -> return (var, result)
+    trans _ = fail "Malformed alist passed to let"
+
+alistToEnv _ = fail "Second argument to let should be an alist"
+
+-- We are strict! Zipper evaluates arguments before passing to functions
+zipper :: Scheme -> Scheme -> Result (String, Scheme)
+zipper (Symbol var) val = eval val >>= \result -> return (var, result)
+zipper a b = fail $ "Malformed function arguments" ++ show a  ++ " " ++ show b
+
+-- Exposed API
 
 -- | Evaluate a string and return result
 --
@@ -185,39 +196,11 @@ exec str = fst $ run [] str
 --
 -- This method is stateless and subsequent applications wont behave like a repl.
 run :: Env -> String -> (Either String Scheme, Env)
-run env str = case read str of
-                Right lv -> runState (progn lv) env
-                Left err -> (Left $ show err, env)
+run env str =
+    case read str of
+        Right lv ->
+            case runIdentity $ runExceptT $ runStateT (progn lv) env of
+              Right (result, env') -> (Right result, env')
+              Left err -> (Left err, env)
 
--- Helpers
-applyPrimitive :: String -> [Scheme] -> Scheme
-applyPrimitive func args =
-    case lookup func primitives of
-        Just primitive -> primitive args
-        Nothing -> error $ "Undefined primitive function " ++ show func
-
--- | Return duplicate items in the list
---
--- >>> duplicates [1, 2, 3, 4, 1]
--- [1]
-duplicates :: [Scheme] -> [Scheme]
-duplicates xs = xs \\ nub xs
-
--- | Transforms a let args tuple list to env
-alistToEnv :: Scheme -> State Env (Either String Env)
-alistToEnv (List xs) = do
-    env <- get
-    let (Right sets) = mapM trans xs
-    let (Right _lv, env') = runState (progn sets) env
-    return $ Right env'
-  where
-     -- | Transform an alist of the form `(a 1)` to a `(set! a 1)` expression
-     trans :: Scheme -> Either String Scheme
-     trans (List[Symbol a, val']) = Right $ List[Symbol "set!", Symbol a, val']
-     trans _ = Left "Malformed alist"
-
-alistToEnv _ = return $ Left "Second argument to let should be an alist"
-
--- | Resolves a variable reference
-resolve :: String -> Env -> Maybe Scheme
-resolve = lookup
+        Left err -> (Left $ show err, env)
