@@ -44,10 +44,8 @@ eval (Symbol key) = do
 -- Let special form
 -- [TODO] - `let` should be implemented as a macro
 eval (Let args body) = do
-    env <- get
     arguments <- alistToEnv args
-    let local = arguments ++ env
-    lift $ evalStateT (progn body) local
+    withStateT (arguments ++) $ progn body
 
 -- [TODO] - Verify default value of `cond` if no branches match
 -- [TODO] - `cond` should be implemented as a macro
@@ -137,11 +135,8 @@ eval lv = throwError $ "Unknown value; " ++ show lv
 -- scoping.
 apply :: Scheme -> [Scheme] -> Result Scheme
 apply (Procedure closure formal body) args = do
-    env <- get
     local <- zipWithM zipper formal args
-    let extended = closure ++ local ++ env
-
-    lift $ evalStateT (progn body) extended
+    withStateT (\env -> closure ++ local ++ env) $ progn body
 
 apply (Symbol func) args =
     case lookup func primitives of
