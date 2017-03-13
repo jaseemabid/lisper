@@ -150,7 +150,7 @@ leak = testCase "let should not leak closure outside" $
     exec "(let ((result (let ((a 1)                                    \
        \                      (b 2))                                   \
        \                   (+ a b)))))                                 \
-       \  (+ result a b)" @?= Left "Undefined variable `a`"
+       \  (+ result a b)" @?= Left "Undefined variable `result`"
 
 factorial :: TestTree
 factorial = testCase "Recursive factorial" $ do
