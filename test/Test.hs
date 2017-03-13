@@ -145,6 +145,13 @@ define = testCase "Define with let closure" $
         \     (lambda (y) (+ x y))))                                   \
         \ (add4 6) " @?= Right (Number 10)
 
+leak :: TestTree
+leak = testCase "let should not leak closure outside" $
+    exec "(let ((result (let ((a 1)                                    \
+       \                      (b 2))                                   \
+       \                   (+ a b)))))                                 \
+       \  (+ result a b)" @?= Left "Undefined variable `a`"
+
 factorial :: TestTree
 factorial = testCase "Recursive factorial" $ do
     f <- readFile "scripts/fact.ss"
@@ -156,7 +163,7 @@ named = testCase "Apply named functions" $ do
     exec "((define (const) 42) (const))" @?= Right (Number 42)
 
 procedures :: TestTree
-procedures = testGroup "Procedures" [lambda, iffe, add, define, factorial, named]
+procedures = testGroup "Procedures" [lambda, iffe, add, define, leak, factorial, named]
 
 -- § 4.1.5; conditionals
 -- [TODO] - See § 6.3.1 and verify what values scheme consider truthy
