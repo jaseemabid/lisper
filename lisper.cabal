@@ -1,7 +1,7 @@
 name:                lisper
 version:             0.1.0.0
 synopsis:            A tiny lisp interpreter
-description:         A scheme like, but static and strong, lazy pattern matched lisp.
+description:         A R5RS scheme clone
 homepage:            https://github.com/jaseemabid/lisper
 license:             MIT
 license-file:        LICENSE

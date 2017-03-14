@@ -1,8 +1,6 @@
 # Lisper [![Build Status](https://travis-ci.org/jaseemabid/lisper.svg?branch=master)](https://travis-ci.org/jaseemabid/lisper)
 
-A tiny *WIP*
-[Scheme](https://en.wikipedia.org/wiki/Scheme_(programming_language))
-implementation in Haskell.
+A tiny scheme interpreter in Haskell
 
 ## Getting started
 
