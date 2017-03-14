@@ -16,6 +16,7 @@ data Scheme =
     | String String
     | Symbol String
     | Vector
+   deriving (Eq)
 
 type Env = [(String, Scheme)]
 
@@ -33,16 +34,6 @@ instance Show Scheme where
     show (Bool True) = "#t"
     show (Bool False) = "#f"
     show _ = "Undefined type"
-
-instance Eq Scheme where
-    (==) (Symbol a) (Symbol b) = a == b
-    (==) (List a) (List b) = a == b
-    (==) (Pair a b) (Pair c d) = a == c && b == d
-    (==) (String a) (String b) = a == b
-    (==) (Number a) (Number b) = a == b
-    (==) (Bool a) (Bool b) = a == b
-    (==) Procedure{} Procedure{} = False
-    (==) _a _b = False
 
 -- Patterns for pattern matching ;)
 pattern NIL :: Scheme
