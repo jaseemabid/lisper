@@ -19,12 +19,12 @@ type Result a = StateT Env (ExceptT String Identity) a
 
 -- | Evaluate an expression and return the result or error if any.
 --
--- The environment maybe updated by specifc commands like `set!`, and is handled
--- by the `State` monad. Env should be mostly left unmodified unless the body is
--- of the form of a `define` or a `set`.
+-- The environment maybe updated by specific commands like `set!`, and is
+-- handled by the `State` Monad. Env should be mostly left unmodified unless the
+-- body is of the form of a `define` or a `set`.
 eval :: Scheme -> Result Scheme
 
--- Eval on primitive values is no-op:
+-- Evaluating primitive values is no-op:
 eval val@(Bool _) = return val
 eval val@(List []) = return val
 eval val@(Number _) = return val
@@ -147,7 +147,7 @@ apply fn _args = throwError $ "Procedure Application Error. Fn: " ++ show fn
 
 -- | Evaluate a list of expressions sequentially; and return the result of last
 --
--- Progn needs to stop at the first throwErrorure and hence the intermediatary results
+-- Progn needs to stop at the first failure and hence the intermediary results
 -- are forced with a `seq`. I'm not sure if this is the right way to do things,
 -- but works for now.
 progn :: [Scheme] -> Result Scheme
