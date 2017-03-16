@@ -45,7 +45,7 @@ eval (Symbol key) = do
 -- [TODO] - `let` should be implemented as a macro
 eval (Let args body) = do
     arguments <- alistToEnv args
-    withStateT (arguments ++) $ progn body
+    withLocalStateT (arguments ++) $ progn body
 
 -- [TODO] - Verify default value of `cond` if no branches match
 -- [TODO] - `cond` should be implemented as a macro
@@ -136,7 +136,7 @@ eval lv = throwError $ "Unknown value; " ++ show lv
 apply :: Scheme -> [Scheme] -> Result Scheme
 apply (Procedure closure formal body) args = do
     local <- zipWithM zipper formal args
-    withStateT (\env -> closure ++ local ++ env) $ progn body
+    withLocalStateT (\env -> closure ++ local ++ env) $ progn body
 
 apply (Symbol func) args =
     case lookup func primitives of
@@ -156,6 +156,15 @@ progn :: [Scheme] -> Result Scheme
 progn [] = return NIL
 progn [x] = eval x
 progn (x:xs) = eval x >>= \lv -> seq lv $ progn xs
+
+
+-- | Equivalent to `withStateT` in API, but `evalStateT` in behaviour
+--
+-- Evaluate a state computation with the given initial state and return the
+-- final value, discarding the final state.
+withLocalStateT :: Monad m => (s -> s) -> StateT s m a -> StateT s m a
+withLocalStateT f m =
+    get >>= \env -> lift $ fst <$> runStateT m (f env)
 
 -- | Return duplicate items in the list
 --
