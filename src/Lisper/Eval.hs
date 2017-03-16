@@ -64,15 +64,13 @@ eval (Cond body) =
 -- If special form
 eval (If1 predicate conseq alt) =
     eval predicate >>= \case
-        Bool True -> eval conseq
         Bool False -> eval alt
-        NIL -> eval alt
-        err -> throwError $ "Expected boolean; got `" ++ show err ++ "` instead"
+        _ -> eval conseq
 
 eval (If2 predicate conseq) =
     eval predicate >>= \case
-        Bool True -> eval conseq
-        _ -> throwError "Unspecified return value"
+        Bool False -> throwError "Unspecified return value"
+        _ -> eval conseq
 
 -- Set special form
 --

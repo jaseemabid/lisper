@@ -165,13 +165,12 @@ named = testCase "Apply named functions" $ do
 procedures :: TestTree
 procedures = testGroup "Procedures" [lambda, iffe, add, define, leak, factorial, named]
 
--- § 4.1.5; conditionals
--- [TODO] - See § 6.3.1 and verify what values scheme consider truthy
-
+-- § 4.1.5; conditionals. Scheme considers everything other than `#f` truthy
 ifOk :: TestTree
 ifOk = testCase "The obvious if" $ do
     exec "(if #t 1 2)" @?= Right (Number 1)
     exec "(if #f 1 2)" @?= Right (Number 2)
+    exec "(if '() 1 2)" @?= Right (Number 1)
     exec "(let ((a 1)                                                   \
         \       (b 2))                                                  \
         \   (if (> a b) a b))" @?= Right (Number 2)
