@@ -133,8 +133,16 @@ eval lv = throwError $ "Unknown value; " ++ show lv
 -- scoping.
 apply :: Scheme -> [Scheme] -> Result Scheme
 apply (Procedure closure formal body) args = do
-    local <- zipWithM zipper formal args
-    withLocalStateT (\env -> closure ++ local ++ env) $ progn body
+    if (arity == applied)
+    then do
+        local <- zipWithM zipper formal args
+        withLocalStateT (\env -> closure ++ local ++ env) $ progn body
+    else throwError err
+  where
+   arity = length formal
+   applied = length args
+   -- [TODO] - Add function name to error report if available
+   err = "Expected " ++ show arity ++ " arguments; got " ++ show applied ++ " instead"
 
 apply (Symbol func) args =
     case lookup func primitives of

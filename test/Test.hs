@@ -138,6 +138,11 @@ add = testCase "Simple adder" $
     exec "(define add (lambda (x y) (+ x y)))                          \
         \ (add 10 20)" @?= Right (Number 30)
 
+arity :: TestTree
+arity = testCase "Report arity mismatch" $
+        exec "(define add (lambda (x y) (+ x y)))                      \
+             \ (add 10 20 30)" @?= Left "Expected 2 arguments; got 3 instead"
+
 define :: TestTree
 define = testCase "Define with let closure" $
     exec "(define add4                                                 \
@@ -160,10 +165,11 @@ factorial = testCase "Recursive factorial" $ do
 named :: TestTree
 named = testCase "Apply named functions" $ do
     exec "(define (add x) (+ 10 x)) (add 32)" @?= Right (Number 42)
-    exec "((define (const) 42) (const))" @?= Right (Number 42)
+    exec "(define (const) 1) (const)" @?= Right (Number 1)
 
 procedures :: TestTree
-procedures = testGroup "Procedures" [lambda, iffe, add, define, leak, factorial, named]
+procedures = testGroup "Procedures" [lambda, iffe, add, arity, define, leak,
+                                      factorial, named]
 
 -- § 4.1.5; conditionals. Scheme considers everything other than `#f` truthy
 ifOk :: TestTree
