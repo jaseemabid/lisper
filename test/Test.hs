@@ -29,8 +29,11 @@ tests = testGroup "Unit Tests" [parser
 
 everything :: TestTree
 everything = testCase "Understand all primitive types" $
-    exec "'(hello 1 -4 \"YES\" 'ok a->b <=? () '() #t #f)" @?=
+    exec "'(hello + - ... 1 -4 \"YES\" 'ok a->b <=? () '() #t #f)" @?=
         Right (List [Symbol "hello"
+                    , Symbol "+"
+                    , Symbol "-"
+                    , Symbol "..."
                     , Number 1
                     , Number (-4)
                     , String "YES"

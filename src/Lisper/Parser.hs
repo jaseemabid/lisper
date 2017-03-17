@@ -67,7 +67,7 @@ parseSymbol = Symbol <$> identifier
     identifier :: Parser String
     identifier = try (string "+" <* notFollowedBy alphaNum)
         <|> try (string "-" <* notFollowedBy alphaNum)
-        <|> try (string "...") <* space
+        <|> try (string "...")
         <|> do
             i <- initial
             s <- many subsequent
