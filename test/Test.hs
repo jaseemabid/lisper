@@ -1,10 +1,14 @@
 module Main where
 
+import Prelude hiding (read)
+
 import Test.Tasty
 import Test.Tasty.HUnit
 
 import Lisper.Core
 import Lisper.Eval
+import Lisper.Macro
+import Lisper.Parser (read)
 
 main :: IO ()
 main = defaultMain tests
@@ -23,7 +27,8 @@ tests = testGroup "Unit Tests" [parser
                                , assignments
                                , cond
                                , binding
-                               , sample]
+                               , sample
+                               , macros]
 
 -- Parser tests
 
@@ -247,3 +252,78 @@ merge = testCase "Simple merge sort" $
 
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
+
+-- Rudimentary macros to start with
+
+andMacro :: TestTree
+andMacro = testCase "Handle (and a b) macro" $ do
+
+    -- [TODO] - Improve this test without writing the entire AST ?
+    case read source of
+          Right [List (Symbol "define-syntax" : _)] -> return ()
+          x -> assertString $ show x
+
+    build (syntax source) @?= Macro identifiers [rule1, rule2, rule3]
+
+    -- [TODO] - *CRITICAL* Add tests for expansion
+
+  where
+      identifiers = []
+
+      -- [TODO] - Could avoid so much boilerplate code here, refactor
+      rule1 = Rule pattern_ template
+        where
+          Right pattern_ = head <$> read "(and)"
+          Right template = head <$> read "#t"
+
+      rule2 = Rule pattern_ template
+        where
+          Right pattern_ = head <$> read "(and test)"
+          Right template = head <$> read "test"
+
+      rule3 = Rule pattern_ template
+        where
+          Right pattern_ = head <$> read "(and t1 t2 ...)"
+          Right template = head <$> read "(if t1 (and t2 ...) #f)"
+
+      source :: String
+      source = "(define-syntax and                                     \
+               \  (syntax-rules ()                                     \
+               \    ((and) #t)                                         \
+               \    ((and test) test)                                  \
+               \    ((and t1 t2 ...)                                   \
+               \      (if t1 (and t2 ...) #f))))"
+
+bindMacro :: TestTree
+bindMacro = testCase "Handle (bind a => f) macro" $
+
+    build (syntax source) @?= Macro [(=>+)] [rule]
+
+  where
+    bind_ = Symbol "bind"
+    a = Symbol "a"
+    b = Symbol "b"
+    (=>+) =  Symbol "=>"
+
+    rule = Rule (List [bind_, a, (=>+), b]) (List [b, a])
+
+    -- Applied like `(bind 42 => add)`
+    source :: String
+    source = "(define-syntax bind                                      \
+             \  (syntax-rules (=>)                                     \
+             \    ((bind a => b) (b a))))"
+
+-- Helper functions
+
+-- Very naive way to get `syntax-rules` from `define-syntax`.
+syntax :: String -> Scheme
+syntax str = do
+  let Right ast = read str
+  case head ast of
+           List[Symbol "define-syntax", Symbol _name, List rules] ->
+              List rules
+           _ -> error "Parse error"
+
+-- | Exposed tests
+macros :: TestTree
+macros = testGroup "Macros" [andMacro]

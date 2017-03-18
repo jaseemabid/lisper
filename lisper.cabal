@@ -21,6 +21,7 @@ library
   exposed-modules:     Lisper,
                        Lisper.Core,
                        Lisper.Eval,
+                       Lisper.Macro,
                        Lisper.Parser,
                        Lisper.Primitives,
                        Lisper.Repl,
