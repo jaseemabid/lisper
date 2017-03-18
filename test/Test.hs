@@ -319,4 +319,4 @@ syntax str = do
 
 -- | Exposed tests
 macros :: TestTree
-macros = testGroup "Macros" [andMacro]
+macros = testGroup "Macros" [andMacro, bindMacro]
