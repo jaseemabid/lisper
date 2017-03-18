@@ -132,8 +132,8 @@ eval lv = throwError $ "Unknown value; " ++ show lv
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
 apply :: Scheme -> [Scheme] -> Result Scheme
-apply (Procedure closure formal body) args = do
-    if (arity == applied)
+apply (Procedure closure formal body) args =
+    if arity == applied
     then do
         local <- zipWithM zipper formal args
         withLocalStateT (\env -> closure ++ local ++ env) $ progn body
