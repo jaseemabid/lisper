@@ -9,6 +9,8 @@ import Lisper.Core
 import Lisper.Eval
 import Lisper.Macro
 import Lisper.Parser (read)
+import Lisper.Token
+
 
 main :: IO ()
 main = defaultMain tests
@@ -18,17 +20,9 @@ test :: TestTree -> IO ()
 test a = defaultMain $ testGroup "Test" [a]
 
 tests :: TestTree
-tests = testGroup "Unit Tests" [parser
-                               , references
-                               , literal
-                               , calls
-                               , procedures
-                               , conditionals
-                               , assignments
-                               , cond
-                               , binding
-                               , sample
-                               , macros]
+tests = testGroup "Unit Tests"
+    [parser, references, literal, calls, procedures, conditionals, assignments,
+     cond, binding, sample, macros]
 
 -- Parser tests
 
@@ -36,19 +30,19 @@ everything :: TestTree
 everything = testCase "Understand all primitive types" $
     exec "'(hello + - ... 1 -4 \"YES\" 'ok a->b <=? () '() #t #f)" @?=
         Right (List [Symbol "hello"
-                    , Symbol "+"
-                    , Symbol "-"
-                    , Symbol "..."
-                    , Number 1
-                    , Number (-4)
-                    , String "YES"
-                    , List [Symbol "quote", Symbol "ok"]
-                    , Symbol "a->b"
-                    , Symbol "<=?"
-                    , NIL
-                    , List [Symbol "quote", NIL]
-                    , Bool True
-                    , Bool False
+                   , Plus
+                   , Minus
+                   , Ellipses
+                   , Number 1
+                   , Number (-4)
+                   , String "YES"
+                   , List [Quote, Symbol "ok"]
+                   , Symbol "a->b"
+                   , Symbol "<=?"
+                   , NIL
+                   , List [Quote, NIL]
+                   , Yes
+                   , No
                     ])
 
 comments :: TestTree
@@ -86,7 +80,6 @@ references :: TestTree
 references = testGroup "Variable References" [def, res1, res2, res3, res4]
 
 -- § 4.1.2; Literal Expressions
-
 quote :: TestTree
 quote = testCase "(quote a) should be equivalent to 'a" $ do
     exec "(quote a)" @?= exec "'a"
@@ -101,20 +94,20 @@ literal = testGroup "Literal Expressions" [
 
     testCase "(quote '(a b c))" $
         exec "(quote '(a b c))" @?=
-          Right (List [Symbol "quote", List [Symbol "a", Symbol "b", Symbol "c"]]),
+          Right (List [Quote, List [Symbol "a", Symbol "b", Symbol "c"]]),
 
     testCase "(quote '(+ 1 2))" $
         exec "(quote '(+ 1 2))" @?=
-            Right (List [Symbol "quote", List [Symbol "+", Number 1, Number 2]])]
+            Right (List [Quote, List [Plus, Number 1, Number 2]])]
 
 -- § 4.1.3; Procedure calls
 
 eq :: TestTree
 eq = testCase "Primitives; eq, car and cdr" $ do
-    exec "(eq (car '(1 2 3)) 1)" @?= Right (Bool True)
-    exec "(eq (cdr '(1 2 3)) '(2 3))" @?= Right (Bool True)
-    exec "(eq 1 2)" @?= Right (Bool False)
-    exec "(eq 1 '(1))" @?= Right (Bool False)
+    exec "(eq (car '(1 2 3)) 1)" @?= Right Yes
+    exec "(eq (cdr '(1 2 3)) '(2 3))" @?= Right Yes
+    exec "(eq 1 2)" @?= Right No
+    exec "(eq 1 '(1))" @?= Right No
 
 cons :: TestTree
 cons = testCase "Make lists with cons" $
@@ -134,7 +127,7 @@ lambda = testCase "The obvious lambda expression" $
         Right (Procedure env args body) -> do
             env @?= [("a", Number 1)]
             args @?= [Symbol "x"]
-            body @?= [List [Symbol "+", Number 1, Symbol "x"]]
+            body @?= [List [Plus, Number 1, Symbol "x"]]
         x -> assertString $ show x
 
 iffe :: TestTree
@@ -176,8 +169,8 @@ named = testCase "Apply named functions" $ do
     exec "(define (const) 1) (const)" @?= Right (Number 1)
 
 procedures :: TestTree
-procedures = testGroup "Procedures" [lambda, iffe, add, arity, define, leak,
-                                      factorial, named]
+procedures = testGroup "Procedures"
+    [lambda, iffe, add, arity, define, leak, factorial, named]
 
 -- § 4.1.5; conditionals. Scheme considers everything other than `#f` truthy
 ifOk :: TestTree
@@ -191,8 +184,8 @@ ifOk = testCase "The obvious if" $ do
 
 ifOne :: TestTree
 ifOne = testCase "If should work with just one branch" $ do
-  exec "(if #t 42)" @?= Right (Number 42)
-  exec "(if #f 42)" @?= Left "Unspecified return value"
+    exec "(if #t 42)" @?= Right (Number 42)
+    exec "(if #f 42)" @?= Left "Unspecified return value"
 
 conditionals :: TestTree
 conditionals = testGroup "Conditionals" [ifOk, ifOne]
@@ -201,7 +194,7 @@ conditionals = testGroup "Conditionals" [ifOk, ifOne]
 -- [TODO] - Its OK to set! at top level; I don't like that :/
 set :: TestTree
 set = testCase "Nuances of set" $ do
-    exec "(define a #t) (set! a #f) a" @?= Right (Bool False)
+    exec "(define a #t) (set! a #f) a" @?= Right No
 
     exec "(let ((a 1))                                                  \
         \   (set! a 2)                                                  \

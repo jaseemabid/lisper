@@ -12,11 +12,13 @@
 
 module Lisper.Parser (parser, read) where
 
-import Prelude hiding (read)
-import qualified Prelude as P
 import Data.Char (toLower)
-import Lisper.Core
+import Prelude hiding (read)
 import Text.ParserCombinators.Parsec
+import qualified Prelude as P
+
+import Lisper.Core
+import Lisper.Token
 
 -- | Parse comment
 parseComment :: Parser Scheme
@@ -95,10 +97,8 @@ parsePair = do
 -- | parse quoted expression
 parseQuoted :: Parser Scheme
 parseQuoted = do
-    x <- quote *> parseExpr
+    x <- char '\'' *> parseExpr
     return $ List [Quote, x]
-  where
-    quote = char '\''
 
 -- | The lisp grammer
 parseExpr :: Parser Scheme

@@ -12,6 +12,7 @@ import Data.List (nub, (\\))
 import Prelude hiding (read)
 
 import Lisper.Core
+import Lisper.Token
 import Lisper.Parser
 import Lisper.Primitives
 
@@ -43,31 +44,31 @@ eval (Symbol key) = do
 
 -- Let special form
 -- [TODO] - `let` should be implemented as a macro
-eval (Let args body) = do
+eval (List (Let: args : body)) = do
     arguments <- alistToEnv args
     withLocalStateT (arguments ++) $ progn body
 
 -- [TODO] - Verify default value of `cond` if no branches match
 -- [TODO] - `cond` should be implemented as a macro
 -- Return `NIL if no branches match
-eval (Cond body) =
+eval (List (Cond: body)) =
     case body of
       (List [Symbol "else", value]: _xs) -> eval value
       (List [predicate, value]: xs) ->
           eval predicate >>= \case
-              NIL -> eval (Cond xs)
-              Bool False -> eval (Cond xs)
+              NIL -> eval (List (Cond: xs))
+              Bool False -> eval (List (Cond: xs))
               _ -> eval value
       [] -> return NIL
       err -> throwError $ "Syntax error: Expected alist; got " ++ show err ++ " instead"
 
 -- If special form
-eval (If1 predicate conseq alt) =
+eval (List [If, predicate, conseq, alt]) =
     eval predicate >>= \case
         Bool False -> eval alt
         _ -> eval conseq
 
-eval (If2 predicate conseq) =
+eval (List [If, predicate, conseq]) =
     eval predicate >>= \case
         Bool False -> throwError "Unspecified return value"
         _ -> eval conseq
@@ -75,19 +76,20 @@ eval (If2 predicate conseq) =
 -- Set special form
 --
 --`set!` can change any existing binding, but not introduce a new one
-eval (Set var val) = do
+eval (List [Set, Symbol var, val]) = do
     void $ eval $ Symbol var
     eval val >>= \result -> modify $ \env -> (var, result) : env
     return NIL
 
+-- [TODO] - `define` supports only the 2 simple forms for now.
 -- Define special form, simple case
-eval (Define1 var expr) = do
+eval (List [Define, Symbol var, expr]) = do
     result <- eval expr
     modify $ \env -> (var, result) : env
     return result
 
 -- Procedure definitions
-eval (Define2 name args body) = do
+eval (List (Define: List (Symbol name : args) : body)) = do
     env <- get
     case duplicates args of
         [] -> do
@@ -100,7 +102,7 @@ eval (Define2 name args body) = do
         x -> throwError $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Lambda definition
-eval (Lambda args body) = do
+eval (List (Lambda: List args: body)) = do
     env <- get
     case duplicates args of
       [] -> return $ Procedure env args body
@@ -162,7 +164,6 @@ progn :: [Scheme] -> Result Scheme
 progn [] = return NIL
 progn [x] = eval x
 progn (x:xs) = eval x >>= \lv -> seq lv $ progn xs
-
 
 -- | Equivalent to `withStateT` in API, but `evalStateT` in behaviour
 --

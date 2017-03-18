@@ -23,6 +23,7 @@ library
                        Lisper.Eval,
                        Lisper.Macro,
                        Lisper.Parser,
+                       Lisper.Token,
                        Lisper.Primitives,
                        Lisper.Repl,
                        Lisper.Util
