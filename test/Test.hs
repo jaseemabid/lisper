@@ -126,7 +126,7 @@ lambda = testCase "The obvious lambda expression" $
              \ (lambda (x) (+ 1 x))" of
         Right (Procedure env args body) -> do
             env @?= [("a", Number 1)]
-            args @?= [Symbol "x"]
+            args @?= List [Symbol "x"]
             body @?= [List [Plus, Number 1, Symbol "x"]]
         x -> assertString $ show x
 
@@ -138,6 +138,10 @@ add :: TestTree
 add = testCase "Simple adder" $
     exec "(define add (lambda (x y) (+ x y)))                          \
         \ (add 10 20)" @?= Right (Number 30)
+
+variadic :: TestTree
+variadic = testCase "Lambda with any number of args" $
+    exec "((lambda x (car x)) 1 2 3)"@?= Right (Number 1)
 
 arity :: TestTree
 arity = testCase "Report arity mismatch" $
@@ -170,7 +174,7 @@ named = testCase "Apply named functions" $ do
 
 procedures :: TestTree
 procedures = testGroup "Procedures"
-    [lambda, iffe, add, arity, define, leak, factorial, named]
+    [lambda, iffe, add, arity, variadic, define, leak, factorial, named]
 
 -- § 4.1.5; conditionals. Scheme considers everything other than `#f` truthy
 ifOk :: TestTree

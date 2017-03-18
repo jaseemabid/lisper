@@ -96,16 +96,21 @@ eval (List (Define: List (Symbol name : args) : body)) = do
             put env'
             return fn
           where
-            fn = Procedure env' args body
+            fn = Procedure env' (List args) body
             env' = (name, fn) : env
 
         x -> throwError $ "Duplicate argument " ++ show x ++ " in function definition"
 
--- Lambda definition
+-- Lambda definition.; (lambda x (car x))
+eval (List (Lambda: Symbol arg: body)) = do
+    env <- get
+    return $ Procedure env (Symbol arg) body
+
+-- Lambda definition.
 eval (List (Lambda: List args: body)) = do
     env <- get
     case duplicates args of
-      [] -> return $ Procedure env args body
+      [] -> return $ Procedure env (List args) body
       x -> throwError $ "Duplicate argument " ++ show x ++ " in function definition"
 
 -- Procedure application with name
@@ -134,7 +139,7 @@ eval lv = throwError $ "Unknown value; " ++ show lv
 -- while evaluating the function body, preventing behavior similar to dynamic
 -- scoping.
 apply :: Scheme -> [Scheme] -> Result Scheme
-apply (Procedure closure formal body) args =
+apply (Procedure closure (List formal) body) args =
     if arity == applied
     then do
         local <- zipWithM zipper formal args
@@ -145,6 +150,12 @@ apply (Procedure closure formal body) args =
    applied = length args
    -- [TODO] - Add function name to error report if available
    err = "Expected " ++ show arity ++ " arguments; got " ++ show applied ++ " instead"
+
+-- Handle the case `((lambda x x) 1 2 3)`
+apply (Procedure closure (Symbol arg) body) args =
+    withLocalStateT (\env -> closure ++ local ++ env) $ progn body
+  where
+    local = [(arg, List args)]
 
 apply (Symbol func) args =
     case lookup func primitives of

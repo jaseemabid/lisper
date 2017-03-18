@@ -11,7 +11,7 @@ data Scheme =
     | Number Integer
     | Pair [Scheme] Scheme
     | Port
-    | Procedure Env [Scheme] [Scheme]
+    | Procedure Env Scheme [Scheme]
     | String String
     | Symbol String
     | Vector
