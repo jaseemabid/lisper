@@ -5,45 +5,39 @@
 -- The scheme parser
 -- See http://www.scheme.com/tspl2d/grammar.html for formal grammar
 --
+-- See http://unbui.lt/#!/post/haskell-parsec-basics for a great introduction to
+-- Parsec and Monadic parsing
 -----------------------------------------------------------------------------
-
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms   #-}
-
 module Lisper.Parser (parser, read) where
 
 import Data.Char (toLower)
 import Prelude hiding (read)
-import Text.ParserCombinators.Parsec
 import qualified Prelude as P
+
+import Text.Parsec
 
 import Lisper.Core
 import Lisper.Token
 
 -- | Parse comment
-parseComment :: Parser Scheme
-parseComment = string ";" >> manyTill anyChar (char '\n') >> return NIL
+parseComment :: Parsec String st Scheme
+parseComment = string ";" >> manyTill anyChar newline >> return NIL
 
 -- | Parse a quoted string
-parseString :: Parser Scheme
-parseString = String <$> p
+parseString :: Parsec String st Scheme
+parseString = String <$> between dquote dquote (many (noneOf "\""))
   where
-    p :: Parser String
-    p = between dquote dquote (many (noneOf "\""))
-
     dquote = char '"'
 
 -- | Parse a signed integer
-parseNumber :: Parser Scheme
+parseNumber :: Parsec String st Scheme
 parseNumber = Number <$> p
   where
-    p :: Parser Integer
+    p :: Parsec String st Integer
     p = try $ do
         sign <- option ' ' (char '-')
-        d <- try (P.read <$> many1 digit)
-        return $ case sign of
-                   '-' -> -1 * d
-                   _ ->  d
+        d <- P.read <$> many1 digit
+        return $ if sign == '-' then negate d else d
 
 -- | Parse any valid scheme identifier
 --
@@ -54,20 +48,21 @@ parseNumber = Number <$> p
 -- digit. The three exceptions are the identifiers ..., +, and -. Case is
 -- insignificant in symbols so that, for example, newspaper, NewsPaper, and
 -- NEWSPAPER all represent the same identifier.
-parseSymbol :: Parser Scheme
+parseSymbol :: Parsec String st Scheme
 parseSymbol = Symbol <$> identifier
   where
-    symbol :: Parser Char
+    symbol :: Parsec String st Char
     symbol = oneOf "!$%&*/:<=>?~_^"
 
-    initial :: Parser Char
+    initial :: Parsec String st Char
     initial = letter <|> symbol
 
-    subsequent :: Parser Char
+    subsequent :: Parsec String st Char
     subsequent = initial <|> digit <|> oneOf ".+-"
 
-    identifier :: Parser String
-    identifier = try (string "+" <* notFollowedBy alphaNum)
+    identifier :: Parsec String st String
+    identifier =
+            try (string "+" <* notFollowedBy alphaNum)
         <|> try (string "-" <* notFollowedBy alphaNum)
         <|> try (string "...")
         <|> do
@@ -76,33 +71,30 @@ parseSymbol = Symbol <$> identifier
             return $ map toLower $ i : s
 
 -- | Parse scheme boolean
-parseBool :: Parser Scheme
-parseBool = Bool <$> p
-  where
-    -- Try is required on the left side of <|> to prevent eagerly consuming #
-    p :: Parser Bool
-    p = (== "#t") <$> (try (string "#t") <|> string "#f")
+--
+-- Try is required on the left side of <|> to prevent eagerly consuming #
+parseBool :: Parsec String st Scheme
+parseBool = Bool . (== "#t") <$> (try (string "#t") <|> string "#f")
 
 -- | Parse a list
-parseList :: Parser Scheme
+parseList :: Parsec String st Scheme
 parseList = List <$> sepEndBy parseExpr spaces
 
 -- | Parse dotted list
-parsePair :: Parser Scheme
+parsePair :: Parsec String st Scheme
 parsePair = do
     h <- endBy parseExpr spaces
     t <- char '.' >> spaces >> parseExpr
     return $ Pair h t
 
 -- | parse quoted expression
-parseQuoted :: Parser Scheme
-parseQuoted = do
-    x <- char '\'' *> parseExpr
-    return $ List [Quote, x]
+parseQuoted :: Parsec String st Scheme
+parseQuoted = char '\'' *> parseExpr >>= \x -> return $ List [Quote, x]
 
--- | The lisp grammer
-parseExpr :: Parser Scheme
-parseExpr = parseComment
+-- | The lisp grammar
+parseExpr :: Parsec String st Scheme
+parseExpr =
+      parseComment
   <|> parseBool
   <|> parseNumber
   <|> parseSymbol
@@ -114,7 +106,7 @@ parseExpr = parseComment
     spaces >> char ')' >> spaces
     return x
 
-parser :: Parser [Scheme]
+parser :: Parsec String st [Scheme]
 parser = many1 parseExpr
 
 read :: String -> Either ParseError [Scheme]
