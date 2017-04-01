@@ -109,6 +109,15 @@ parseExpr =
 parser :: Parsec String st [Scheme]
 parser = many1 parseExpr
 
-read :: String -> Either ParseError [Scheme]
+
+-- | Parse source and return AST
+--
+-- Converting ParseError to String is losing information, but helps compose
+-- elsewhere. See `Test.exec` for example. This is alright because I'm not doing
+-- anything else with it right now.
+read :: String -> Either String [Scheme]
 read "" = Right []
-read input = parse parser "" input
+read input =
+    case parse parser "" input of
+        Left err -> Left $ show err
+        Right val -> Right val

@@ -20,6 +20,7 @@ source-repository head
 library
   exposed-modules:     Lisper,
                        Lisper.Core,
+                       Lisper.Compiler,
                        Lisper.Eval,
                        Lisper.Macro,
                        Lisper.Parser,

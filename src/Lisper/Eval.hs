@@ -6,13 +6,10 @@ module Lisper.Eval where
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Lazy
-import Data.Either
 import Data.List (nub, (\\))
-import Prelude hiding (read)
 
 import Lisper.Core
 import Lisper.Token
-import Lisper.Parser
 import Lisper.Primitives
 
 type Result a = StateT Env (ExceptT String Identity) a
@@ -212,21 +209,10 @@ zipper a b = throwError $ "Malformed function arguments" ++ show a  ++ " " ++ sh
 
 -- Exposed API
 
--- | Evaluate a string and return result
+-- | Evaluate a AST and return result, along with new env
 --
--- This method is stateless and subsequent applications wont behave like a repl.
-exec :: String -> Either String Scheme
-exec str = fst $ run [] str
-
--- | Evaluate a string and return result, along with new env
---
--- This method is stateless and subsequent applications wont behave like a repl.
-run :: Env -> String -> (Either String Scheme, Env)
-run env str =
-    case read str of
-        Right lv ->
-            case runIdentity $ runExceptT $ runStateT (progn lv) env of
-              Right (result, env') -> (Right result, env')
-              Left err -> (Left err, env)
-
-        Left err -> (Left $ show err, env)
+-- Evaluation should happen after compilation, which ideally should be enforced
+-- with types. This method is stateless and subsequent applications wont behave
+-- like a REPL.
+evaluate :: [Scheme] -> Either String (Scheme, Env)
+evaluate ast = runIdentity $ runExceptT $ runStateT (progn ast) []

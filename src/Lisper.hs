@@ -1,3 +1,3 @@
-module Lisper (exec) where
+module Lisper (compile, evaluate) where
 
-import           Lisper.Eval (exec)
+import Lisper.Compiler (compile, evaluate)

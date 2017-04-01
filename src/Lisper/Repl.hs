@@ -2,8 +2,9 @@
 
 module Lisper.Repl (runRepl) where
 
-import Lisper.Core (Env)
-import Lisper.Eval
+import Prelude hiding (read)
+
+import Lisper.Compiler (Env, read, evaluate)
 
 import Control.Monad.State.Lazy
 import System.Console.Haskeline
@@ -25,14 +26,16 @@ runRepl = do
             Just "q" -> return ()
             Just "" -> loop
             Just line -> do
-                env <- get
+                case read line of
+                    Right ast ->
+                      case evaluate ast of
+                          (Right (result, env')) -> do
+                              put env'
+                              lift $ outputStrLn (show result)
 
-                case run env line of
-                  (Right result, env') -> do
-                      put env'
-                      lift $ outputStrLn (show result)
+                          (Left err) ->
+                              lift $ outputStrLn err
 
-                  (Left err, _) ->
-                      lift $ outputStrLn err
+                    Left err -> lift $ outputStrLn err
 
                 loop

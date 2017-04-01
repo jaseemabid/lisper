@@ -2,8 +2,8 @@ module Main where
 
 import System.Environment (getArgs)
 
-import Lisper.Eval
-import Lisper.Repl
+import Lisper.Compiler (exec)
+import Lisper.Repl (runRepl)
 
 -- Main
 main :: IO ()
