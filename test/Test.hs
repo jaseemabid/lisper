@@ -260,7 +260,7 @@ andMacro = testCase "Handle (and a b) macro" $ do
           Right [List (Symbol "define-syntax" : _)] -> return ()
           x -> assertString $ show x
 
-    build (syntax source) @?= Macro identifiers [rule1, rule2, rule3]
+    build ast @?= (NIL, [("and", macro)])
 
     -- [TODO] - *CRITICAL* Add tests for expansion
 
@@ -283,6 +283,8 @@ andMacro = testCase "Handle (and a b) macro" $ do
           Right pattern_ = head <$> read "(and t1 t2 ...)"
           Right template = head <$> read "(if t1 (and t2 ...) #f)"
 
+      macro = Macro identifiers [rule1, rule2, rule3]
+
       source :: String
       source = "(define-syntax and                                     \
                \  (syntax-rules ()                                     \
@@ -291,18 +293,23 @@ andMacro = testCase "Handle (and a b) macro" $ do
                \    ((and t1 t2 ...)                                   \
                \      (if t1 (and t2 ...) #f))))"
 
+      Right ast = head <$> read source
+
 bindMacro :: TestTree
 bindMacro = testCase "Handle (bind a => f) macro" $
 
-    build (syntax source) @?= Macro [(=>+)] [rule]
+    build ast @?= (NIL, [("bind", macro)])
 
   where
+
     bind_ = Symbol "bind"
     a = Symbol "a"
     b = Symbol "b"
-    (=>+) =  Symbol "=>"
+    arrow =  Symbol "=>"
 
-    rule = Rule (List [bind_, a, (=>+), b]) (List [b, a])
+    rule = Rule (List [bind_, a, arrow, b]) (List [b, a])
+
+    macro = Macro [arrow] [rule]
 
     -- Applied like `(bind 42 => add)`
     source :: String
@@ -310,16 +317,7 @@ bindMacro = testCase "Handle (bind a => f) macro" $
              \  (syntax-rules (=>)                                     \
              \    ((bind a => b) (b a))))"
 
--- Helper functions
-
--- Very naive way to get `syntax-rules` from `define-syntax`.
-syntax :: String -> Scheme
-syntax str = do
-  let Right ast = read str
-  case head ast of
-           List[Symbol "define-syntax", Symbol _name, List rules] ->
-              List rules
-           _ -> error "Parse error"
+    Right ast = head <$> read source
 
 -- | Exposed tests
 macros :: TestTree
