@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- Core data strctures and functions on them
 module Lisper.Core where
 

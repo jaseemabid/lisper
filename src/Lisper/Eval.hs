@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms   #-}
 
 module Lisper.Eval where

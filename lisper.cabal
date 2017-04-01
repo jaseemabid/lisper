@@ -27,7 +27,8 @@ library
                        Lisper.Primitives,
                        Lisper.Repl,
                        Lisper.Util
-  -- other-modules:
+
+  default-extensions:  OverloadedStrings
   other-extensions:    OverloadedStrings, PatternSynonyms
   build-depends:       HUnit,
                        base,
