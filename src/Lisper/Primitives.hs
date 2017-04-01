@@ -1,5 +1,20 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Lisper.Primitives
+--
+-- Scheme primitives implemented in Haskell
+--
+-- This module has several issues and needs a complete rewrite.
+--
+-- 1. Find a good architecture for native functions.
+-- 2. Cannot use any of these as higher order functions.
+-- 3. Remove `error` from everywhere
+-- 4. Add a prelude file which can have pure lisp definitions
+-----------------------------------------------------------------------------
+
 module Lisper.Primitives (primitives) where
-import           Lisper.Core
+
+import Lisper.Core
 
 -- Primitives, implemented in terms of haskell
 primitives :: [(String, [Scheme] -> Scheme)]
@@ -26,12 +41,6 @@ primitives = [("eq", eq),
               ("quote", head),
               ("rem", numericBinop rem)]
 
--- [todo] - Add a prelude file which can have pure lisp definitions
--- [todo] - Define stdlib in pure lisp when possible
--- [todo] - Add haskell primitives to default env and remove applyPrimitive
--- Cond spec http://www.gnu.org/software/mit-scheme/documentation/mit-scheme-ref/Conditionals.html
-
--- Scheme primitives
 eq :: [Scheme] -> Scheme
 eq [a, b] = Bool $ a == b
 eq x = error $ "eq expected 2 arguments" ++ show x
