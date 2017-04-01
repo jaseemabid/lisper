@@ -25,8 +25,7 @@ library
                        Lisper.Parser,
                        Lisper.Token,
                        Lisper.Primitives,
-                       Lisper.Repl,
-                       Lisper.Util
+                       Lisper.Repl
 
   default-extensions:  OverloadedStrings
   other-extensions:    OverloadedStrings, PatternSynonyms
