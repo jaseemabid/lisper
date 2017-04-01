@@ -17,6 +17,9 @@ data Scheme =
 
 type Env = [(String, Scheme)]
 
+nil :: Scheme
+nil = List []
+
 instance Show Scheme where
     show (Symbol x) = x
     show (List x) =
