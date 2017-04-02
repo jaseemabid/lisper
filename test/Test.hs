@@ -266,10 +266,6 @@ andS = "(define-syntax and                                             \
        \    ((and t1 t2 ...)                                           \
        \      (if t1 (and t2 ...) #f))))"
 
--- | `and` application
-andA :: String
-andA = "(and #t 42)"
-
 -- | `and` macro
 andM :: Macro
 andM = Macro "and" [] [rule1, rule2, rule3]
@@ -282,16 +278,12 @@ andM = Macro "and" [] [rule1, rule2, rule3]
 bindS :: String
 bindS = "(define-syntax bind                                           \
         \  (syntax-rules (=>)                                          \
-        \    ((bind a => b) (b a))))"
-
--- | `bind` application
-bindA :: String
-bindA = "(define (inc x) (+ 1 x)) (bind 1 => inc)"
+        \    ((bind a => b) (if a (b a) #f))))"
 
 bindM :: Macro
 bindM = Macro "bind" [Symbol "=>"] [rule]
   where
-    rule = Rule (lisp "(bind a => b)") (lisp "(b a)")
+    rule = Rule (lisp "(bind a => b)") (lisp "(if a (b a) #f)")
 
 -- Tests
 
@@ -311,7 +303,7 @@ buildBind = testCase "Build (bind a => f)" $ do
 
 expandBind :: TestTree
 expandBind = testCase "Expand (bind a => f)" $
-    expand bindM (lisp "(bind 1 => inc)") @?= lisp "(inc 1)"
+    expand bindM (lisp "(bind 1 => inc)") @?= lisp "(if 1 (inc 1) #f)"
 
 expandAnd :: TestTree
 expandAnd = testCase "Expand (and a => f)" $ do
