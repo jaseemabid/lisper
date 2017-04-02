@@ -28,6 +28,8 @@ runRepl = do
             Just line -> do
                 case read line of
                     Right ast ->
+                      -- [TODO] - REPL is broken. Make evaluate use the state.
+                      -- Cause 5b5de5d
                       case evaluate ast of
                           (Right (result, env')) -> do
                               put env'
