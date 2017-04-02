@@ -5,12 +5,11 @@ import Prelude hiding (read)
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import Lisper.Compiler (exec)
 import Lisper.Core
-import Lisper.Eval
 import Lisper.Macro
 import Lisper.Parser (read)
 import Lisper.Token
-
 
 main :: IO ()
 main = defaultMain tests
@@ -18,6 +17,12 @@ main = defaultMain tests
 -- | Test a single test, super convenient in the repl
 test :: TestTree -> IO ()
 test a = defaultMain $ testGroup "Test" [a]
+
+-- | Make a single Scheme value out of string
+lisp :: String -> Scheme
+lisp source = case read source of
+                  Right x -> head x
+                  Left err -> error err
 
 tests :: TestTree
 tests = testGroup "Unit Tests"
@@ -250,75 +255,69 @@ merge = testCase "Simple merge sort" $
 sample :: TestTree
 sample = testGroup "Sample Programs" [curry', merge]
 
--- Rudimentary macros to start with
+-- Macro tests
 
-andMacro :: TestTree
-andMacro = testCase "Handle (and a b) macro" $ do
+-- | `and` source
+andS :: String
+andS = "(define-syntax and                                             \
+       \  (syntax-rules ()                                             \
+       \    ((and) #t)                                                 \
+       \    ((and test) test)                                          \
+       \    ((and t1 t2 ...)                                           \
+       \      (if t1 (and t2 ...) #f))))"
 
-    -- [TODO] - Improve this test without writing the entire AST ?
-    case read source of
-          Right [List (Symbol "define-syntax" : _)] -> return ()
-          x -> assertString $ show x
+-- | `and` application
+andA :: String
+andA = "(and #t 42)"
 
-    build ast @?= (NIL, [("and", macro)])
-
-    -- [TODO] - *CRITICAL* Add tests for expansion
-
+-- | `and` macro
+andM :: Macro
+andM = Macro "and" [] [rule1, rule2, rule3]
   where
-      identifiers = []
+    rule1 = Rule (lisp "(and)") (lisp "#t")
+    rule2 = Rule (lisp "(and test)") (lisp "test")
+    rule3 = Rule (lisp "(and t1 t2 ...)") (lisp "(if t1 (and t2 ...) #f)")
 
-      -- [TODO] - Could avoid so much boilerplate code here, refactor
-      rule1 = Rule pattern_ template
-        where
-          Right pattern_ = head <$> read "(and)"
-          Right template = head <$> read "#t"
+-- | `bind` source
+bindS :: String
+bindS = "(define-syntax bind                                           \
+        \  (syntax-rules (=>)                                          \
+        \    ((bind a => b) (b a))))"
 
-      rule2 = Rule pattern_ template
-        where
-          Right pattern_ = head <$> read "(and test)"
-          Right template = head <$> read "test"
+-- | `bind` application
+bindA :: String
+bindA = "(define (inc x) (+ 1 x)) (bind 1 => inc)"
 
-      rule3 = Rule pattern_ template
-        where
-          Right pattern_ = head <$> read "(and t1 t2 ...)"
-          Right template = head <$> read "(if t1 (and t2 ...) #f)"
-
-      macro = Macro identifiers [rule1, rule2, rule3]
-
-      source :: String
-      source = "(define-syntax and                                     \
-               \  (syntax-rules ()                                     \
-               \    ((and) #t)                                         \
-               \    ((and test) test)                                  \
-               \    ((and t1 t2 ...)                                   \
-               \      (if t1 (and t2 ...) #f))))"
-
-      Right ast = head <$> read source
-
-bindMacro :: TestTree
-bindMacro = testCase "Handle (bind a => f) macro" $
-
-    build ast @?= (NIL, [("bind", macro)])
-
+bindM :: Macro
+bindM = Macro "bind" [Symbol "=>"] [rule]
   where
+    rule = Rule (lisp "(bind a => b)") (lisp "(b a)")
 
-    bind_ = Symbol "bind"
-    a = Symbol "a"
-    b = Symbol "b"
-    arrow =  Symbol "=>"
+-- Tests
 
-    rule = Rule (List [bind_, a, arrow, b]) (List [b, a])
+buildAnd :: TestTree
+buildAnd = testCase "Build (and a b)" $ do
+    let Right (ast', macros') = compile [lisp andS]
 
-    macro = Macro [arrow] [rule]
+    ast' @?= [nil]
+    macros' @?= [("and", andM)]
 
-    -- Applied like `(bind 42 => add)`
-    source :: String
-    source = "(define-syntax bind                                      \
-             \  (syntax-rules (=>)                                     \
-             \    ((bind a => b) (b a))))"
+buildBind :: TestTree
+buildBind = testCase "Build (bind a => f)" $ do
+    let Right (ast', macros') = compile [lisp bindS]
 
-    Right ast = head <$> read source
+    ast' @?= [nil]
+    macros' @?= [("bind", bindM)]
 
--- | Exposed tests
+expandBind :: TestTree
+expandBind = testCase "Expand (bind a => f)" $
+    expand bindM (lisp "(bind 1 => inc)") @?= lisp "(inc 1)"
+
+expandAnd :: TestTree
+expandAnd = testCase "Expand (and a => f)" $ do
+    expand andM (lisp "(and)") @?= lisp "#t"
+    expand andM (lisp "(and #t)") @?= lisp "#t"
+
+-- [TODO] - Get rid of unnecessary () after macro expansion
 macros :: TestTree
-macros = testGroup "Macros" [andMacro, bindMacro]
+macros = testGroup "Macros" [buildAnd, buildBind, expandBind, expandAnd]
