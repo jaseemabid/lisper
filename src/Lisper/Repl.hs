@@ -10,8 +10,8 @@ import Control.Monad.State.Lazy
 import System.Console.Haskeline
 import System.Directory (getHomeDirectory)
 
--- [todo] - Improve input from stdin, Ie echo "(+ 1 1)" | lisper
-
+-- [TODO] - Improve input from stdin, Ie echo "(+ 1 1)" | lisper
+-- [FIX] - REPL is broken since 5b5de5d. Make evaluate use the state.
 runRepl :: IO ()
 runRepl = do
     f <- (++ "/.lisper_history") <$> getHomeDirectory
@@ -28,8 +28,6 @@ runRepl = do
             Just line -> do
                 case read line of
                     Right ast ->
-                      -- [TODO] - REPL is broken. Make evaluate use the state.
-                      -- Cause 5b5de5d
                       case evaluate ast of
                           (Right (result, env')) -> do
                               put env'

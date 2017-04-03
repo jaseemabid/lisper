@@ -68,8 +68,8 @@ length' x = error $ "length expected a single list, got " ++ show x
 list' :: [Scheme] -> Scheme
 list' = List
 
--- [todo] Add input type to error message
--- [todo] Possibly auto generate unpack*
+-- [TODO] - Add input type to error message
+-- [TODO] - Possibly auto generate unpack*
 unpackNum :: Scheme -> Integer
 unpackNum (Number n) = n
 unpackNum x = error $ "Expected number; got " ++ show x ++ " instead"
