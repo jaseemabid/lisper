@@ -306,9 +306,10 @@ expandBind = testCase "Expand (bind a => f)" $
     expand bindM (lisp "(bind 1 => inc)") @?= lisp "(if 1 (inc 1) #f)"
 
 expandAnd :: TestTree
-expandAnd = testCase "Expand (and a => f)" $ do
+expandAnd = testCase "Expand (and ...)" $ do
     expand andM (lisp "(and)") @?= lisp "#t"
     expand andM (lisp "(and #t)") @?= lisp "#t"
+    expand andM (lisp "(and 1 2)") @?= lisp "(if 1 (if 2) #f)"
 
 -- [TODO] - Get rid of unnecessary () after macro expansion
 macros :: TestTree

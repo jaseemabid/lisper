@@ -5,9 +5,10 @@ module Lisper.Macro where
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Lazy
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromJust)
 
 import Lisper.Core
+import Lisper.Token
 
 --
 -- § Types
@@ -141,7 +142,7 @@ compile1 expression = return expression
 expand :: Macro -> Scheme -> Scheme
 expand (Macro name ids (Rule pattn template: rules)) usage =
     if match ids pattn usage
-    then replace template
+    then fromJust $ replace template
     else expand (Macro name ids rules) usage
 
   where
@@ -150,36 +151,42 @@ expand (Macro name ids (Rule pattn template: rules)) usage =
     --
     -- Ie, look for @a@ in @[(a, 1), (b, inc)]@, and replace if available
     --
-    replace :: Scheme -> Scheme
-    replace (List xs) = List $ map replace xs
+    replace :: Scheme -> Maybe Scheme
+    -- replace l@(List ((Symbol car):_xs))
+    --   | car == name = Just $ expand m l
+    --   | otherwise = replace l
+    replace (List xs) = Just $ List $ catMaybes $ map replace xs
+    replace (Symbol "...") = Nothing
     replace (Symbol a) =
         case lookup a rewrites of
-            Just val -> val
-            -- [TODO] - Recurse here, will fail for macros like `and`
-            Nothing -> Symbol a
+            Just val -> Just val
+            Nothing -> Just $ Symbol a
 
       where
         -- | Make an alist of items to replace
+        --
+        -- @(a b c ...) -> (1 2 3 4 5) -> {a: 1, b: 2, c: (3 4 5)}@
         rewrites :: [(String, Scheme)]
         rewrites =
             case (pattn, usage) of
-                -- (a b) (1 2) -> {a: 1, b: 2}
                 (List ps, List us) ->
                     catMaybes $ zipWith zipper ps us
 
                 (_pattn, _usage) ->
-                    -- A pattern is a list that begins with the keyword for the macro.
+                    -- A pattern is a list that begins with the macro keyword
                     error $ "Malformed pattern " ++ show a ++ " in macro " ++ name
 
-    replace expression = expression
+    replace expression = Just expression
 
     zipper :: Scheme -> Scheme -> Maybe (String, Scheme)
     zipper (Symbol a) s
       -- Ignore macro name
       | a == name && (s == Symbol name) = Nothing
+
       -- Ignore identifiers
       | Symbol a `elem` ids = Nothing
-      -- Varaible binding, symbol to something else
+
+      -- Variable binding, symbol to something else
       | a /= name = Just (a, s)
 
     zipper a b = error $ "Cant zip " ++ show a ++ " <> " ++ show b
@@ -191,6 +198,8 @@ expand m@(Macro name _identifiers _rules) _expr =
 -- [TODO] - Handle identifiers in macros, this is too naive
 
 -- | Check if a predicate will match an expression
+--
+-- See § 4.3.2; Pattern language
 --
 -- >>> match _ (bind a => b) (#t => not)
 -- True
@@ -210,15 +219,21 @@ match ids predicate usage =
         (True, Bool a, Bool b) -> a == b
         (True, Number a, Number b) -> a == b
         (True, Symbol a, Symbol b) -> a == b
-
-        -- Empty list will only match itself
         (_, List [], _) -> usage == nil
+
+        -- Pattern variables that occur on subpatterns followed by one or more
+        -- instances of the identifier ... are allowed only in subtemplates that
+        -- are followed by as many as instances of ... . They are replaced in
+        -- the output by all of the subforms they match in the input,
+        -- distributed as indicated.
+        --
+        -- [TODO] - This is not correct, but a rough approximation
+        (_, List (Ellipses: _xs), _) -> True
 
         (_, List(x: xs), List(y: ys)) ->
             match ids x y && match ids (List xs) (List ys)
 
         (a, b, c) -> error $ "Unknown match format" ++ show (a, b, c)
-
   where
     literalp = predicate `elem` ids
 
