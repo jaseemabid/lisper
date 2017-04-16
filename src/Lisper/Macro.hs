@@ -5,7 +5,7 @@ module Lisper.Macro where
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Lazy
-import Data.Maybe (catMaybes, fromJust)
+import Data.Maybe (catMaybes, mapMaybe, fromJust)
 
 import Lisper.Core
 import Lisper.Token
@@ -75,8 +75,6 @@ type Compiler a = StateT Macros (ExceptT String Identity) a
 --
 -- § Implementation
 --
-
-
 
 -- | Compile an expression; building and expanding macros
 --
@@ -155,7 +153,7 @@ expand (Macro name ids (Rule pattn template: rules)) usage =
     -- replace l@(List ((Symbol car):_xs))
     --   | car == name = Just $ expand m l
     --   | otherwise = replace l
-    replace (List xs) = Just $ List $ catMaybes $ map replace xs
+    replace (List xs) = Just $ List $ mapMaybe replace xs
     replace (Symbol "...") = Nothing
     replace (Symbol a) =
         case lookup a rewrites of
