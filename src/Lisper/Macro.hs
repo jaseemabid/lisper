@@ -93,10 +93,8 @@ compile1 (s@(List [Symbol "define-syntax", Symbol name, transformer])) =
         Left _err -> return $ Just s
 
 compile1 (s@(List (Symbol name: _rest))) = do
-  macros <- get
-  case lookup name macros of
-    Just macro -> return $ Just $ expand macro s
-    Nothing -> return $ Just s
+    macros <- get
+    return . pure $ maybe s (`expand` s) $ lookup name macros
 
 compile1 expression = return $ Just expression
 
