@@ -81,27 +81,24 @@ type Compiler a = StateT Macros (ExceptT String Identity) a
 
 -- | Compile an expression; building or expanding macros
 --
--- Walk through the AST; if a macro definition is encountered, extract it and
--- remove it from source (build). Expand macros when possible. Leave everything
--- else as it is.
+-- If a macro definition is encountered, extract it and remove it from source
+-- (build). Expand macros when possible. Leave everything else as it is.
 --
--- [TODO] - Replace `define-syntax` with Nothing, not nil
---
-compile1 :: Scheme -> Compiler Scheme
+compile1 :: Scheme -> Compiler (Maybe Scheme)
 compile1 (s@(List [Symbol "define-syntax", Symbol name, transformer])) =
     case build transformer of
-        Right t -> do
-            modify $ \env -> (name, t) : env
-            return nil
-        Left _err -> return s
+        Right macro -> do
+            modify $ \env -> (name, macro) : env
+            return Nothing
+        Left _err -> return $ Just s
 
 compile1 (s@(List (Symbol name: _rest))) = do
   macros <- get
   case lookup name macros of
-    Just macro -> return $ expand macro s
-    Nothing -> return s
+    Just macro -> return $ Just $ expand macro s
+    Nothing -> return $ Just s
 
-compile1 expression = return expression
+compile1 expression = return $ Just expression
 
 -- | Build a Macro object from AST
 --
@@ -249,4 +246,7 @@ match ids predicate usage =
 --
 -- This method is stateless and subsequent applications wont behave like a REPL.
 compile :: [Scheme] -> Either String ([Scheme], Macros)
-compile ast = runIdentity $ runExceptT $ runStateT (mapM compile1 ast) []
+compile ast = runIdentity $ runExceptT $ runStateT compiled macros
+  where
+    compiled = catMaybes <$> mapM compile1 ast
+    macros = []
