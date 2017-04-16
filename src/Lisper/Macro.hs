@@ -208,8 +208,8 @@ expand m@(Macro name _identifiers _rules) _expr =
 -- False
 --
 match :: [Identifier] -> Pattern -> Scheme -> Bool
-match ids predicate usage =
-    case (literalp, predicate, usage) of
+match ids pattn usage =
+    case (literalp, pattn, usage) of
 
         -- P is a non literal identifier;
         -- `a` in `(or a b)` will match `(or #t 1)`
@@ -236,7 +236,7 @@ match ids predicate usage =
 
         (a, b, c) -> error $ "Unknown match format" ++ show (a, b, c)
   where
-    literalp = predicate `elem` ids
+    literalp = pattn `elem` ids
 
 -- § Exposed API
 
