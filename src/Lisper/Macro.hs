@@ -49,6 +49,9 @@ type Pattern = Scheme
 --
 type Template = Scheme
 
+-- | Alias for the name of a macro
+type Name = String
+
 -- | A rule is a `Pattern` and a `Template` to rewrite to when matched
 --
 -- Consider the macro
@@ -63,11 +66,11 @@ data Rule = Rule Pattern Template
   deriving (Eq, Show)
 
 -- | A macro is a set of `Identifier`s and rewrite `Rule`s
-data Macro = Macro String [Identifier] [Rule]
+data Macro = Macro Name [Identifier] [Rule]
   deriving (Eq, Show)
 
 -- | A list of named macros, like `Env`, but at compile time
-type Macros = [(String, Macro)]
+type Macros = [(Name, Macro)]
 
 -- | A compiler is a state transformer that returns an AST
 type Compiler a = StateT Macros (ExceptT String Identity) a
@@ -76,38 +79,21 @@ type Compiler a = StateT Macros (ExceptT String Identity) a
 -- § Implementation
 --
 
--- | Compile an expression; building and expanding macros
+-- | Compile an expression; building or expanding macros
 --
--- Walk through the string; if a macro definition is encountered, extract it and
--- remove it from source. Expand macros when possible. Leave everything else as
--- it is.
+-- Walk through the AST; if a macro definition is encountered, extract it and
+-- remove it from source (build). Expand macros when possible. Leave everything
+-- else as it is.
 --
---
--- Make a macro object from the AST
 -- [TODO] - Replace `define-syntax` with Nothing, not nil
+--
 compile1 :: Scheme -> Compiler Scheme
 compile1 (s@(List [Symbol "define-syntax", Symbol name, transformer])) =
     case build transformer of
-        Just t -> do
+        Right t -> do
             modify $ \env -> (name, t) : env
             return nil
-        Nothing -> return s
-
-  where
-    -- | Compile a Macro object from AST
-    build :: Scheme -> Maybe Macro
-    build (List (Symbol "syntax-rules": List identifiers: rules')) =
-        Just $ Macro name identifiers rules
-
-      where
-        rules = map alistToRule rules'
-
-        -- [TODO] - Ensure that all patterns starts with the macro name
-        alistToRule (List [a, b]) = Rule a b
-        alistToRule _ = error "Unknown macro rule"
-
-    build _ = Nothing
-
+        Left _err -> return s
 
 compile1 (s@(List (Symbol name: _rest))) = do
   macros <- get
@@ -116,6 +102,28 @@ compile1 (s@(List (Symbol name: _rest))) = do
     Nothing -> return s
 
 compile1 expression = return expression
+
+-- | Build a Macro object from AST
+--
+-- Input is an expression of the form @(syntax-rules ...)@
+build :: Scheme -> Either String Macro
+build (List (Symbol "syntax-rules": List identifiers: rules')) = do
+    rules <- mapM alistToRule rules'
+    name <- getName rules
+
+    Right $ Macro name identifiers rules
+
+  where
+    getName :: [Rule] -> Either String Name
+    getName (Rule (List (Symbol sym: _)) _template: _xs) = Right sym
+    getName err = Left $ "Unable to fetch name for macro " ++ show err
+
+    -- [TODO] - Ensure that all patterns starts with the macro name
+    alistToRule :: Scheme -> Either String Rule
+    alistToRule (List [a, b]) = Right $ Rule a b
+    alistToRule r = Left $ "Unknown macro rule: " ++ show r
+
+build expr = Left $ "Error build macro: " ++ show expr
 
 
 -- | Expand a macro

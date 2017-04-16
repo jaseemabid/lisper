@@ -257,15 +257,6 @@ sample = testGroup "Sample Programs" [curry', merge]
 
 -- Macro tests
 
--- | `and` source
-andS :: String
-andS = "(define-syntax and                                             \
-       \  (syntax-rules ()                                             \
-       \    ((and) #t)                                                 \
-       \    ((and test) test)                                          \
-       \    ((and t1 t2 ...)                                           \
-       \      (if t1 (and t2 ...) #f))))"
-
 -- | `and` macro
 andM :: Macro
 andM = Macro "and" [] [rule1, rule2, rule3]
@@ -273,12 +264,6 @@ andM = Macro "and" [] [rule1, rule2, rule3]
     rule1 = Rule (lisp "(and)") (lisp "#t")
     rule2 = Rule (lisp "(and test)") (lisp "test")
     rule3 = Rule (lisp "(and t1 t2 ...)") (lisp "(if t1 (and t2 ...) #f)")
-
--- | `bind` source
-bindS :: String
-bindS = "(define-syntax bind                                           \
-        \  (syntax-rules (=>)                                          \
-        \    ((bind a => b) (if a (b a) #f))))"
 
 bindM :: Macro
 bindM = Macro "bind" [Symbol "=>"] [rule]
@@ -288,18 +273,23 @@ bindM = Macro "bind" [Symbol "=>"] [rule]
 -- Tests
 
 buildAnd :: TestTree
-buildAnd = testCase "Build (and a b)" $ do
-    let Right (ast', macros') = compile [lisp andS]
-
-    ast' @?= [nil]
-    macros' @?= [("and", andM)]
+buildAnd = testCase "Build (and a b)" $
+    build (lisp source) @?= Right andM
+  where
+    source :: String
+    source = "(syntax-rules ()                                         \
+             \  ((and) #t)                                             \
+             \  ((and test) test)                                      \
+             \  ((and t1 t2 ...)                                       \
+             \    (if t1 (and t2 ...) #f)))"
 
 buildBind :: TestTree
-buildBind = testCase "Build (bind a => f)" $ do
-    let Right (ast', macros') = compile [lisp bindS]
-
-    ast' @?= [nil]
-    macros' @?= [("bind", bindM)]
+buildBind = testCase "Build (bind a => f)" $
+    build (lisp source) @?= Right bindM
+  where
+    source :: String
+    source = "(syntax-rules (=>)                                       \
+             \  ((bind a => b) (if a (b a) #f)))"
 
 expandBind :: TestTree
 expandBind = testCase "Expand (bind a => f)" $
