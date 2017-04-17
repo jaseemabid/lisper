@@ -144,7 +144,7 @@ replace :: [(String, Scheme)] -> Scheme -> Scheme
 replace rewrite usage =
     case usage of
         (List xs) -> List $ mapMaybe replace' xs
-        _ -> fromMaybe usage $ replace' usage
+        _ -> usage
 
   where
     replace' Ellipses = Nothing
@@ -152,7 +152,7 @@ replace rewrite usage =
         case lookup a rewrite of
             Just val -> Just val
             Nothing -> Just $ Symbol a
-    replace' _ = Just usage
+    replace' val = Just val
 
 
 -- | Make an alist of items to replace from a `Rule` and usage
