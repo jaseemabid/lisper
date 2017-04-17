@@ -5,7 +5,7 @@ module Lisper.Macro where
 import Control.Monad.Except
 import Control.Monad.Identity
 import Control.Monad.State.Lazy
-import Data.Maybe (catMaybes, mapMaybe, fromJust)
+import Data.Maybe
 
 import Lisper.Core
 import Lisper.Token
@@ -122,79 +122,71 @@ build expr = Left $ "Error build macro: " ++ show expr
 
 
 -- | Expand a macro
---
--- Consider the macro
---
--- > (define-syntax bind
--- >   (syntax-rules (=>)
--- >     ((bind a => b) (b a))))
---
--- The usage @(bind #t => not)@ will get expanded to @(not #t)@
---
--- @(bind a => b)@ is the pattern and @(b a)@ is the template
---
--- == Implementation
---
--- 1. Zip pattern and expression to get rewrite env
---
--- 2. Walk through template and replace all symbols with values from this env if
---    available, else leave it as it is.
---
 expand :: Macro -> Scheme -> Scheme
-expand (Macro name ids (Rule pattn template: rules)) usage =
-    if match ids pattn usage
-    then fromJust $ replace template
-    else expand (Macro name ids rules) usage
+expand m@(Macro _name ids rules) usage@(List _) =
+
+    -- Return the usage as it is if there is no rule, otherwise, expand first
+    -- and replace and recurse
+    case listToMaybe $ filter f rules of
+        Just rule -> expand m $ replace (rewrites ids rule usage) usage
+        Nothing -> usage
+      where
+        f (Rule pattn _template) = match ids pattn usage
+
+-- All non list macro expansion is no-op
+expand _macro usage = usage
+
+-- | Replace each symbol in template with mapping from rewrites
+--
+-- Ie, look for @a@ in @[(a, 1), (b, inc)]@, and replace if available
+--
+replace :: [(String, Scheme)] -> Scheme -> Scheme
+replace rewrite usage =
+    case usage of
+        (List xs) -> List $ mapMaybe replace' xs
+        _ -> fromMaybe usage $ replace' usage
 
   where
-
-    -- | Replace each symbol in template with mapping from rewrites
-    --
-    -- Ie, look for @a@ in @[(a, 1), (b, inc)]@, and replace if available
-    --
-    replace :: Scheme -> Maybe Scheme
-    -- replace l@(List ((Symbol car):_xs))
-    --   | car == name = Just $ expand m l
-    --   | otherwise = replace l
-    replace (List xs) = Just $ List $ mapMaybe replace xs
-    replace (Symbol "...") = Nothing
-    replace (Symbol a) =
-        case lookup a rewrites of
+    replace' Ellipses = Nothing
+    replace' (Symbol a) =
+        case lookup a rewrite of
             Just val -> Just val
             Nothing -> Just $ Symbol a
+    replace' _ = Just usage
 
-      where
-        -- | Make an alist of items to replace
-        --
-        -- @(a b c ...) -> (1 2 3 4 5) -> {a: 1, b: 2, c: (3 4 5)}@
-        rewrites :: [(String, Scheme)]
-        rewrites =
-            case (pattn, usage) of
-                (List ps, List us) ->
-                    catMaybes $ zipWith zipper ps us
 
-                (_pattn, _usage) ->
-                    -- A pattern is a list that begins with the macro keyword
-                    error $ "Malformed pattern " ++ show a ++ " in macro " ++ name
+-- | Make an alist of items to replace from a `Rule` and usage
+--
+-- @(=> a b c ...) -> (=> 1 2 3 4 5) -> [(a, 1), (b, 2), (c, (3 4 5))]@
+rewrites :: [Identifier] -> Rule -> Scheme -> [(String, Scheme)]
+rewrites ids (Rule (List pattn') _template) (List usage) =
+    reverse $ foldl dedup [] $ zip pattn usage
+  where
+    Symbol name = head pattn
 
-    replace expression = Just expression
+    -- Pattern might be shorter than usage, so we append `...`
+    pattn = pattn' ++ repeat (Symbol "...")
 
-    zipper :: Scheme -> Scheme -> Maybe (String, Scheme)
-    zipper (Symbol a) s
+    -- Squash `alist` with duplicates and `...`
+    -- >> dedup [("a",1), ("b",2), ("c",3), ("...",4), ("...",5)]
+    -- [("a",1), ("b",2), ("c", '(3, 4, 5)]
+
+    dedup :: [(String, Scheme)] -> (Pattern, Scheme) -> [(String, Scheme)]
+    dedup [] (Ellipses, _var) = error "Unexpected `...`, expected binding"
+    dedup ((binding, List xs): st) (Ellipses, s) =
+        (binding, List (reverse $ s: reverse xs)): st
+    dedup ((binding, old): st) (Ellipses, s) = (binding, List [old, s]): st
+    dedup st (Symbol a, s)
       -- Ignore macro name
-      | a == name && (s == Symbol name) = Nothing
+      | a == name = st
+      -- Ignore identifiers in rewrites
+      | Symbol a `elem` ids = st
+      | otherwise = (a, s): st
+    dedup _ _ = error $ "Unknown exp in dedup: " ++ show usage
 
-      -- Ignore identifiers
-      | Symbol a `elem` ids = Nothing
 
-      -- Variable binding, symbol to something else
-      | a /= name = Just (a, s)
-
-    zipper a b = error $ "Cant zip " ++ show a ++ " <> " ++ show b
-
-expand m@(Macro name _identifiers _rules) _expr =
-    error $ "Error compiling macro " ++ name ++ " " ++ show m
-
+rewrites _ids pattn usage =
+    error $ concat ["Malformed pattern ", show pattn, " for usage: ", show usage]
 
 -- [TODO] - Handle identifiers in macros, this is too naive
 
@@ -237,6 +229,7 @@ match ids pattn usage =
         (a, b, c) -> error $ "Unknown match format" ++ show (a, b, c)
   where
     literalp = pattn `elem` ids
+
 
 -- § Exposed API
 

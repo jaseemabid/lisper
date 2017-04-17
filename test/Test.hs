@@ -291,6 +291,20 @@ buildBind = testCase "Build (bind a => f)" $
     source = "(syntax-rules (=>)                                       \
              \  ((bind a => b) (if a (b a) #f)))"
 
+-- Rewrite tests
+rewriteT :: TestTree
+rewriteT = testCase "Generate rewrite maps" $ do
+
+    rewrites [] rule1 (lisp "(x 1 2 3 4 5)") @?=
+      [("a", Number 1), ("b", Number 2), ("c", lisp "(3 4 5)")]
+
+    rewrites [] rule2 (lisp "(=> 1 2)") @?=
+      [("a", Number 1), ("b", Number 2)]
+
+  where
+    rule1 = Rule (lisp "(x a b c ...)") undefined
+    rule2 = Rule (lisp "(=> a b)") undefined
+
 expandBind :: TestTree
 expandBind = testCase "Expand (bind a => f)" $
     expand bindM (lisp "(bind 1 => inc)") @?= lisp "(if 1 (inc 1) #f)"
