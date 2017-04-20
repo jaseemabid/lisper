@@ -1,31 +1,32 @@
--- Core data strctures and functions on them
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
+
+-- Core data structures and functions on them
 module Lisper.Core where
 
--- | [TODO] - Replace `Scheme` with `Scheme a`
-data Scheme =
-    Bool Bool
-    | Char
-    | List [Scheme]
-    | Number Integer
-    | Pair [Scheme] Scheme
-    | Port
-    | Procedure Env Scheme [Scheme]
-    | String String
-    | Symbol String
-    | Vector
-   deriving (Eq)
 
-type Env = [(String, Scheme)]
+data Scheme a where
+    Bool :: Bool -> Scheme Bool
+    Char :: Char -> Scheme Char
+    List :: [Scheme a] -> Scheme [a]
+    Number :: (Show a, Num a) => a -> Scheme a
+    Pair :: [Scheme ()] -> Scheme a -> Scheme ()
+    Port :: Scheme a
+    Procedure :: Scheme a -> Env -> Scheme a -> [Scheme a] -> Scheme ()
+    String :: String -> Scheme String
+    Symbol :: String -> Scheme String
+    Vector :: a -> Scheme a
 
-nil :: Scheme
+data Env = forall a. Env [(String, Scheme a)]
+
+nil :: Scheme [a]
 nil = List []
 
-instance Show Scheme where
+instance Show (Scheme a) where
     show (Symbol x) = x
-    show (List x) =
-      case x of
-          Symbol "quote" : _ -> "'" ++ unwords' (tail x)
-          _ -> "(" ++ unwords' x ++ ")"
+    show (List (Symbol "quote" : xs)) = "'" ++ unwords' xs
+    show (List x) = "(" ++ unwords' x ++ ")"
     show (Pair h t) = "(" ++ unwords' h ++ " . " ++ show t ++ ")"
     show (String s) = "\"" ++ s ++ "\""
     show (Number n) = show n
@@ -36,5 +37,5 @@ instance Show Scheme where
     show _ = "Undefined type"
 
 -- Helpers
-unwords' :: [Scheme] -> String
+unwords' :: [Scheme a] -> String
 unwords' = unwords . map show
